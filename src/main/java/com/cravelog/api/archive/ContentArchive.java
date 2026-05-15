@@ -1,7 +1,11 @@
 package com.cravelog.api.archive;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import lombok.*;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -9,6 +13,16 @@ import org.springframework.stereotype.Repository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.*;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
+
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -81,7 +95,9 @@ public class ContentArchive {
     private String thumbnailUrl;
 
     @Column(precision = 2, scale = 1)
-    private Double rating; // 평점 (0.0 ~ 5.0)
+    @DecimalMin("0.0")
+    @DecimalMax("5.0")
+    private BigDecimal rating;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -108,14 +124,24 @@ public class ContentArchive {
     }
 }
 
+@Configuration
+class OpenApiConfig {
+    @Bean
+    public OpenAPI craveLogOpenAPI() {
+        return new OpenAPI()
+                .info(new Info()
+                        .title("CraveLog API Documentation")
+                        .description("크레이브로그(CraveLog) 콘텐츠 아카이브 서비스 API 명세서입니다.")
+                        .version("v1.0.0"));
+    }
+}
+
 @Repository
 interface ContentArchiveRepository extends JpaRepository<ContentArchive, Long> {
 
-    // 특정 사용자의 카테고리별 통계
     @Query("SELECT a.categoryType, COUNT(a) FROM ContentArchive a WHERE a.user.id = :userId GROUP BY a.categoryType")
     List<Object[]> countByCategoryRaw(@Param("userId") Long userId);
 
-    // 사용자별/카테고리별/상태별 필터링 조회
     @Query("SELECT a FROM ContentArchive a WHERE a.user.id = :userId " +
             "AND (:category IS NULL OR a.categoryType = :category) " +
             "AND (:status IS NULL OR a.status = :status) " +
@@ -130,7 +156,6 @@ interface ContentArchiveRepository extends JpaRepository<ContentArchive, Long> {
 class ArchiveService {
     private final ContentArchiveRepository repository;
 
-    // 대시보드용 통계 데이터
     public Map<String, Long> getDashboardStats(Long userId) {
         return repository.countByCategoryRaw(userId).stream()
                 .collect(Collectors.toMap(
@@ -139,12 +164,10 @@ class ArchiveService {
                 ));
     }
 
-    // 필터링된 목록 조회
     public List<ContentArchive> getArchives(Long userId, CategoryType category, ArchiveStatus status) {
         return repository.findWithFilters(userId, category, status);
     }
 
-    // 새로운 기록 저장
     public ContentArchive createArchive(ContentArchive archive) {
         return repository.save(archive);
     }
@@ -153,27 +176,33 @@ class ArchiveService {
 @RestController
 @RequestMapping("/api/v1/archives")
 @RequiredArgsConstructor
+@Tag(name = "Archive API", description = "콘텐츠 아카이브 관리 API")
 class ArchiveController {
     private final ArchiveService archiveService;
 
     // 현재는 테스트용으로 userId=1 고정 (추후 SecurityContext에서 추출)
     private final Long TEST_USER_ID = 1L;
 
+    @Operation(summary = "대시보드 통계 조회", description = "로그인한 사용자의 카테고리별 콘텐츠 등록 개수를 조회합니다.")
     @GetMapping("/stats")
     public Map<String, Long> getStats() {
         return archiveService.getDashboardStats(TEST_USER_ID);
     }
 
+    @Operation(summary = "아카이브 목록 조회", description = "카테고리 및 상태별로 필터링된 아카이브 목록을 최신순으로 조회합니다.")
     @GetMapping
     public List<ContentArchive> list(
-            @RequestParam(required = false) CategoryType category,
-            @RequestParam(required = false) ArchiveStatus status) {
+            @Parameter(description = "카테고리 필터 (WEBTOON, MOVIE 등)") @RequestParam(required = false) CategoryType category,
+            @Parameter(description = "상태 필터 (READING, COMPLETED 등)") @RequestParam(required = false) ArchiveStatus status) {
         return archiveService.getArchives(TEST_USER_ID, category, status);
     }
 
+    @Operation(summary = "새로운 아카이브 등록", description = "웹툰, 영화 등 새로운 콘텐츠 기록을 추가합니다.")
+    @ApiResponse(responseCode = "201", description = "등록 성공",
+            content = @Content(schema = @Schema(implementation = ContentArchive.class)))
     @PostMapping
     public ContentArchive create(@RequestBody ContentArchive archive) {
-        // 실제 운영 시에는 인증 정보에서 User를 찾아 매핑
+        // 실제 운영 시에는 인증 정보에서 User를 찾아 매핑하는 로직 필요
         return archiveService.createArchive(archive);
     }
 }
