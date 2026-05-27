@@ -45,4 +45,13 @@ public class ArchiveBlock extends BaseTimeEntity {
         this.type = type;
         this.spaceType = spaceType;
     }
+
+    // 엔티티 수정을 위한 메서드
+    public void update(String title, String content, String url, String type, SpaceType spaceType) {
+        this.title = title;
+        this.content = content;
+        this.url = url;
+        this.type = type;
+        this.spaceType = spaceType;
+    }
 }
