@@ -5,6 +5,7 @@ import com.cravelog.api.dto.ArchiveBlockRequest;
 import com.cravelog.api.service.ArchiveBlockService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,13 +18,13 @@ public class ArchiveBlockController {
     private final ArchiveBlockService archiveBlockService;
 
     /**
-     * [조회] 특정 유저의 아카이브 그리드 데이터 조회
-     * (추후 @AuthenticationPrincipal 을 통해 로그인한 visitorId 연동 권장)
+     * [조회] 특정 유저(ownerId)의 아카이브 그리드 데이터 조회
+     * visitorId는 토큰을 해석하여 알아냅니다. (로그인 안 한 사람은 null)
      */
     @GetMapping("/users/{ownerId}")
     public ResponseEntity<List<ArchiveBlock>> getArchives(
             @PathVariable Long ownerId,
-            @RequestParam(required = false) Long visitorId
+            @AuthenticationPrincipal Long visitorId // 이제 안전하게 토큰에서 유저 ID를 빼옵니다!
     ) {
         List<ArchiveBlock> blocks = archiveBlockService.getPermittedArchives(visitorId, ownerId);
         return ResponseEntity.ok(blocks);
@@ -34,7 +35,7 @@ public class ArchiveBlockController {
      */
     @PostMapping
     public ResponseEntity<ArchiveBlock> createBlock(
-            @RequestParam Long userId, // 인증 토큰 파싱 전 임시 파라미터
+            @AuthenticationPrincipal Long userId, // 내 토큰 기반 아이디
             @RequestBody ArchiveBlockRequest request
     ) {
         ArchiveBlock createdBlock = archiveBlockService.createBlock(userId, request);
@@ -42,12 +43,12 @@ public class ArchiveBlockController {
     }
 
     /**
-     * [수정] 아카이브 블록 정보 수정 (제목, 설명, 공간 이동 등)
+     * [수정] 아카이브 블록 정보 수정
      */
     @PutMapping("/{blockId}")
     public ResponseEntity<ArchiveBlock> updateBlock(
             @PathVariable Long blockId,
-            @RequestParam Long userId, // 인증 토큰 파싱 전 임시 파라미터
+            @AuthenticationPrincipal Long userId,
             @RequestBody ArchiveBlockRequest request
     ) {
         ArchiveBlock updatedBlock = archiveBlockService.updateBlock(userId, blockId, request);
@@ -60,7 +61,7 @@ public class ArchiveBlockController {
     @DeleteMapping("/{blockId}")
     public ResponseEntity<Void> deleteBlock(
             @PathVariable Long blockId,
-            @RequestParam Long userId // 인증 토큰 파싱 전 임시 파라미터
+            @AuthenticationPrincipal Long userId
     ) {
         archiveBlockService.deleteBlock(userId, blockId);
         return ResponseEntity.ok().build();

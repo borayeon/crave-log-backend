@@ -1,19 +1,77 @@
+server:
+  port: 8080
+  forward-headers-strategy: framework
+
 spring:
   application:
-    name: api
+    name: crave-log-api
+  profiles:
+    active: local
 
   datasource:
-    url: jdbc:mysql://localhost:3306/crave_log
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/crave_log?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # 기본값 추가 (cravelog_user / cravelog_pass)
     username: root
     password: 1234
-    driver-class-name: com.mysql.cj.jdbc.Driver
 
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            # 카카오 로그인 테스트 전까지 임시 텍스트 추가
+            client-id: 7be14fc302c4f9ee7baf35ddc0ed81a3
+            client-secret: e545f257f3a0a647642c68c1b37c6587
+            redirect-uri: http://localhost:8080/login/oauth2/code/kakao
+            authorization-grant-type: authorization_code
+            client-authentication-method: client_secret_post
+            client-name: Kakao
+            scope:
+              - profile_nickname
+              - profile_image
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+
+jwt:
+  # HS256 알고리즘을 위해 32자 이상의 임시 기본값 필수 추가
+  secret: qweqweqweqweqwrqwasdr324wqdasr43532wqedasd3qqwe
+  expiration: 86400000
+
+---
+# [Local]
+spring:
+  config:
+    activate:
+      on-profile: local
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+app:
+  auth:
+    authorized-redirect-uris: http://localhost:3000/oauth2/redirect
+    allowed-origins: http://localhost:3000
+
+---
+# [Prod]
+spring:
+  config:
+    activate:
+      on-profile: prod
   jpa:
     hibernate:
       ddl-auto: update
 
-    properties:
-      hibernate:
-        format_sql: true
+app:
+  auth:
+    authorized-redirect-uris:
+      - https://cravelog.me/oauth2/redirect
 
-    show-sql: true
+    allowed-origins:
+      - https://cravelog.me
