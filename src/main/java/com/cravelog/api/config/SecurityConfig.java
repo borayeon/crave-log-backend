@@ -35,15 +35,21 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/error", "/favicon.ico", "/login/**", "/oauth2/**").permitAll()
-                        // API 엔드포인트는 인증이 필요하도록 설정
+                        // 🚀 이 부분에 스웨거 관련 주소를 추가합니다!
+                        .requestMatchers(
+                                "/", "/error", "/favicon.ico", "/login/**", "/oauth2/**",
+                                "/api/v1/auth/**",           // 개발용 토큰 발급 API 허용
+                                "/swagger-ui/**",            // 스웨거 UI 화면 허용
+                                "/v3/api-docs/**",           // 스웨거 데이터 허용
+                                "/swagger-resources/**"      // 스웨거 정적 자원 허용
+                        ).permitAll()
+
                         .requestMatchers("/api/v1/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler(oAuth2SuccessHandler)
                 )
-                // 커스텀 JWT 필터를 UsernamePasswordAuthenticationFilter 앞에 등록
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -61,4 +67,6 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
+
+
 }
