@@ -1,0 +1,85 @@
+package com.cravelog.domain.user;
+
+import com.cravelog.domain.common.BaseTimeEntity;
+import io.hypersistence.utils.hibernate.type.json.JsonType;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Type;
+
+import java.util.List;
+import java.util.Map;
+
+@Entity
+@Table(name = "users")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED) // JPA 기본 생성자 (안전하게 PROTECTED)
+public class User extends BaseTimeEntity {
+
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    // --- 소셜 로그인 및 식별 정보 ---
+    private String oauthProvider; // 예: KAKAO, GOOGLE
+    private String oauthId;       // 소셜 서비스에서 발급한 고유 ID
+    private String email;
+
+    @Column(unique = true, nullable = false)
+    private String handle;        // 공유 URL용 고유 핸들 (예: taekyeong.dev)
+
+    // --- 기본 프로필 정보 (검색이나 목록 조회 시 자주 쓰이는 일반 컬럼) ---
+    private String name;
+    private String role;          // 예: Backend Developer
+    private String major;         // 예: Computer Science
+    private String location;
+    private String statusMessage; // 예: CraveLog 엔진 고도화 중
+
+    @Column(columnDefinition = "TEXT")
+    private String bio;
+
+    // --- 복잡한 프로필 데이터 (JSON 컬럼으로 통째로 저장) ---
+    @Type(JsonType.class)
+    @Column(columnDefinition = "json")
+    private List<String> tags;    // 기본 키워드 태그 목록
+
+    @Type(JsonType.class)
+    @Column(columnDefinition = "json")
+    private List<String> goals;   // 현재 목표 목록
+
+    @Type(JsonType.class)
+    @Column(columnDefinition = "json")
+    private Map<String, Object> developerData; // 개발자 탭 데이터 전체
+
+    @Type(JsonType.class)
+    @Column(columnDefinition = "json")
+    private Map<String, Object> careerData;    // 커리어 탭 데이터 전체
+
+    @Type(JsonType.class)
+    @Column(columnDefinition = "json")
+    private Map<String, Object> idolData;      // 아이돌 탭 데이터 전체
+
+    // --- 프라이버시(공개/비공개) 설정 (JSON) ---
+    @Type(JsonType.class)
+    @Column(columnDefinition = "json")
+    private Map<String, Boolean> privacySettings; // 예: {"developer": true, "career": true, "idol": false}
+
+    @Builder
+    public User(String oauthProvider, String oauthId, String email, String name, String handle) {
+        this.oauthProvider = oauthProvider;
+        this.oauthId = oauthId;
+        this.email = email;
+        this.name = name;
+        this.handle = handle;
+    }
+
+    // 비즈니스 로직: 프로필 업데이트 메서드
+    public void updateProfile(String name, String bio, Map<String, Object> developerData, Map<String, Boolean> privacySettings) {
+        this.name = name;
+        this.bio = bio;
+        this.developerData = developerData;
+        this.privacySettings = privacySettings;
+
+    }
+}
