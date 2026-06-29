@@ -1,4 +1,4 @@
-package com.cravelog.api;
+package com.cravelog;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

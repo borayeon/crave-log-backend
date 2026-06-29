@@ -31,7 +31,8 @@ public class Record extends BaseTimeEntity {
 
     private String recordDate;   // 예: 2026.06.20
 
-    @Column(length = 1000)
+    @Lob
+    @Column(name = "image_url")
     private String imageUrl;     // 이미지 S3 링크 등
 
     // 이 기록 자체를 남에게 숨길 것인지 여부

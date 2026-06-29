@@ -55,8 +55,8 @@ spring:
 
 app:
   auth:
-    authorized-redirect-uris: http://localhost:3000/oauth2/redirect
-    allowed-origins: http://localhost:3000
+    authorized-redirect-uris: http://localhost:5173/oauth2/redirect
+    allowed-origins: http://localhost:5173
 
 ---
 # [Prod]

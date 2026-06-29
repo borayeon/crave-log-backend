@@ -75,11 +75,21 @@ public class User extends BaseTimeEntity {
     }
 
     // 비즈니스 로직: 프로필 업데이트 메서드
-    public void updateProfile(String name, String bio, Map<String, Object> developerData, Map<String, Boolean> privacySettings) {
+    public void updateProfile(String name, String role, String major, String location,
+                              String bio, String statusMessage, List<String> tags, List<String> goals,
+                              Map<String, Object> developerData, Map<String, Object> careerData,
+                              Map<String, Object> idolData, Map<String, Boolean> privacySettings) {
         this.name = name;
+        this.role = role;
+        this.major = major;
+        this.location = location;
         this.bio = bio;
+        this.statusMessage = statusMessage;
+        this.tags = tags;
+        this.goals = goals;
         this.developerData = developerData;
+        this.careerData = careerData;
+        this.idolData = idolData;
         this.privacySettings = privacySettings;
-
     }
 }

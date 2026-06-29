@@ -4,12 +4,15 @@ import com.cravelog.domain.tag.Category;
 import com.cravelog.domain.tag.Tag;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class TagTreeDto {
 
+    // --- 조회용 (Response) ---
     @Getter @Builder
     public static class CategoryResponse {
         private String id;
@@ -18,7 +21,7 @@ public class TagTreeDto {
 
         public static CategoryResponse from(Category category) {
             return CategoryResponse.builder()
-                    .id("cat_" + category.getId()) // 프론트엔드의 문자열 id와 맞춤
+                    .id(String.valueOf(category.getId())) // 프론트와 맞추기 위해 String 변환
                     .name(category.getName())
                     .children(category.getTags().stream()
                             .map(TagResponse::from)
@@ -34,9 +37,22 @@ public class TagTreeDto {
 
         public static TagResponse from(Tag tag) {
             return TagResponse.builder()
-                    .id("tag_" + tag.getId())
+                    .id(String.valueOf(tag.getId()))
                     .name(tag.getName())
                     .build();
         }
+    }
+
+    // --- 생성용 (Request) ---
+    @Getter @Setter
+    @NoArgsConstructor
+    public static class CategoryCreateRequest {
+        private String name;
+    }
+
+    @Getter @Setter
+    @NoArgsConstructor
+    public static class TagCreateRequest {
+        private String name;
     }
 }
