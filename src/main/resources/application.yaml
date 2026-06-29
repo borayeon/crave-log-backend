@@ -22,7 +22,7 @@ spring:
           kakao:
             # 카카오 로그인 테스트 전까지 임시 텍스트 추가
             client-id: 7be14fc302c4f9ee7baf35ddc0ed81a3
-            client-secret: e545f257f3a0a647642c68c1b37c6587
+            client-secret: gYKbQNyVpHdHWaF5p0E4dLbgOdsqYcTJ
             redirect-uri: http://localhost:8080/login/oauth2/code/kakao
             authorization-grant-type: authorization_code
             client-authentication-method: client_secret_post
