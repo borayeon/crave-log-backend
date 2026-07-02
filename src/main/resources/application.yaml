@@ -1,49 +1,3 @@
-server:
-  port: 8080
-  forward-headers-strategy: framework
-
-spring:
-  application:
-    name: crave-log-api
-  profiles:
-    active: prod
-
-  datasource:
-    url: ${DB_URL}
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    # 기본값 추가 (cravelog_user / cravelog_pass)
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
-
-  security:
-    oauth2:
-      client:
-        registration:
-          kakao:
-            # 카카오 로그인 테스트 전까지 임시 텍스트 추가
-            client-id: ${KAKAO_CLIENT_ID}
-            client-secret: ${KAKAO_CLIENT_SECRET}
-            redirect-uri: http://localhost:8080/login/oauth2/code/kakao
-            authorization-grant-type: authorization_code
-            client-authentication-method: client_secret_post
-            client-name: Kakao
-            scope:
-              - profile_nickname
-              - profile_image
-        provider:
-          kakao:
-            authorization-uri: https://kauth.kakao.com/oauth/authorize
-            token-uri: https://kauth.kakao.com/oauth/token
-            user-info-uri: https://kapi.kakao.com/v2/user/me
-            user-name-attribute: id
-
-jwt:
-  # HS256 알고리즘을 위해 32자 이상의 임시 기본값 필수 추가
-  secret: ${JWT_SECRET}
-  expiration: 86400000
-
----
-# [Local]
 spring:
   config:
     activate:
@@ -52,6 +6,27 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: ${KAKAO_CLIENT_ID}
+            client-secret: ${KAKAO_CLIENT_SECRET}
+            redirect-uri: "{baseUrl}/login/oauth2/code/kakao"
+            authorization-grant-type: authorization_code
+            client-authentication-method: client_secret_post
+            client-name: Kakao
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: 86400000
 
 app:
   auth:
@@ -59,19 +34,46 @@ app:
     allowed-origins: http://localhost:5173
 
 ---
-# [Prod]
+# [Production - 배포 환경 설정]
 spring:
   config:
     activate:
       on-profile: prod
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
       ddl-auto: update
+    show-sql: false
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: ${KAKAO_CLIENT_ID}
+            client-secret: ${KAKAO_CLIENT_SECRET}
+            redirect-uri: "{baseUrl}/login/oauth2/code/kakao"
+            authorization-grant-type: authorization_code
+            client-authentication-method: client_secret_post
+            client-name: Kakao
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: 86400000
+
+server:
+  port: ${PORT:8080}
 
 app:
   auth:
-    authorized-redirect-uris:
-      - https://cravelog.me/oauth2/redirect
-
-    allowed-origins:
-      - https://cravelog.me
+    authorized-redirect-uris: ${FRONTEND_URL:https://cravelog.vercel.app}/oauth2/redirect
+    allowed-origins: ${FRONTEND_URL:https://cravelog.vercel.app}
