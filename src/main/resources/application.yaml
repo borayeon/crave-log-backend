@@ -12,8 +12,8 @@ spring:
     url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/crave_log?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
     driver-class-name: com.mysql.cj.jdbc.Driver
     # 기본값 추가 (cravelog_user / cravelog_pass)
-    username: root
-    password: 1234
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
 
   security:
     oauth2:
@@ -21,8 +21,8 @@ spring:
         registration:
           kakao:
             # 카카오 로그인 테스트 전까지 임시 텍스트 추가
-            client-id: 7be14fc302c4f9ee7baf35ddc0ed81a3
-            client-secret: gYKbQNyVpHdHWaF5p0E4dLbgOdsqYcTJ
+            client-id: ${KAKAO_CLIENT_ID}
+            client-secret: ${KAKAO_CLIENT_SECRET}
             redirect-uri: http://localhost:8080/login/oauth2/code/kakao
             authorization-grant-type: authorization_code
             client-authentication-method: client_secret_post
@@ -39,7 +39,7 @@ spring:
 
 jwt:
   # HS256 알고리즘을 위해 32자 이상의 임시 기본값 필수 추가
-  secret: qweqweqweqweqwrqwasdr324wqdasr43532wqedasd3qqwe
+  secret: ${JWT_SECRET}
   expiration: 86400000
 
 ---
