@@ -6,7 +6,7 @@ spring:
   application:
     name: crave-log-api
   profiles:
-    active: local
+    active: prod
 
   datasource:
     url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/crave_log?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
