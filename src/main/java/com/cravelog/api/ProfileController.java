@@ -4,6 +4,8 @@ import com.cravelog.domain.user.UserService;
 import com.cravelog.domain.user.dto.ProfileDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -26,11 +28,10 @@ public class ProfileController {
     /**
      * 2. 내 프로필 조회 (비공개 데이터 포함)
      * GET /api/v1/me/profile
-     * (현재는 로그인이 없으므로 강제로 1번 유저라고 가정)
      */
     @GetMapping("/me/profile")
-    public ResponseEntity<ProfileDto.Response> getMyProfile() {
-        Long myUserId = 1L; // TODO: 추후 Spring Security 연동 후 로그인 유저 ID로 변경
+    public ResponseEntity<ProfileDto.Response> getMyProfile(@AuthenticationPrincipal User principal) {
+        Long myUserId = Long.parseLong(principal.getUsername());
         ProfileDto.Response response = userService.getMyProfile(myUserId);
         return ResponseEntity.ok(response);
     }
@@ -40,8 +41,8 @@ public class ProfileController {
      * PUT /api/v1/me/profile
      */
     @PutMapping("/me/profile")
-    public ResponseEntity<Void> updateMyProfile(@RequestBody ProfileDto.UpdateRequest request) {
-        Long myUserId = 1L; // TODO: 추후 Spring Security 연동 후 로그인 유저 ID로 변경
+    public ResponseEntity<Void> updateMyProfile(@AuthenticationPrincipal User principal, @RequestBody ProfileDto.UpdateRequest request) {
+        Long myUserId = Long.parseLong(principal.getUsername());
         userService.updateProfile(myUserId, request);
         return ResponseEntity.ok().build();
     }

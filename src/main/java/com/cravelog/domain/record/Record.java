@@ -31,9 +31,11 @@ public class Record extends BaseTimeEntity {
 
     private String recordDate;   // 예: 2026.06.20
 
-    @Lob
-    @Column(name = "image_url")
-    private String imageUrl;     // 이미지 S3 링크 등
+    @Column(columnDefinition = "LONGTEXT")
+    private String imageUrl;     // 🔥 S3 링크 또는 길어진 Base64 이미지 데이터 저장
+
+    @Column(columnDefinition = "TEXT")
+    private String content;      // 기록의 간단한 내용(메모)
 
     // 이 기록 자체를 남에게 숨길 것인지 여부
     @Column(nullable = false)
@@ -44,12 +46,23 @@ public class Record extends BaseTimeEntity {
     private List<RecordTag> recordTags = new ArrayList<>();
 
     @Builder
-    public Record(User user, String title, String categoryName, String recordDate, String imageUrl, boolean isPublic) {
+    public Record(User user, String title, String categoryName, String recordDate, String imageUrl, String content, boolean isPublic) {
         this.user = user;
         this.title = title;
         this.categoryName = categoryName;
         this.recordDate = recordDate;
         this.imageUrl = imageUrl;
+        this.content = content;
+        this.isPublic = isPublic;
+    }
+
+    // 🔥 추가: 기록의 내용을 변경하는 메서드
+    public void update(String title, String categoryName, String recordDate, String imageUrl, String content, boolean isPublic) {
+        this.title = title;
+        this.categoryName = categoryName;
+        this.recordDate = recordDate;
+        this.imageUrl = imageUrl;
+        this.content = content;
         this.isPublic = isPublic;
     }
 }

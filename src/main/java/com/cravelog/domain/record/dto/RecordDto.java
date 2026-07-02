@@ -19,6 +19,7 @@ public class RecordDto {
         private String category;
         private String date;
         private String image;
+        private String content; // 🔥 추가
         private List<String> tags;
 
         public static Response from(Record record) {
@@ -28,6 +29,7 @@ public class RecordDto {
                     .category(record.getCategoryName())
                     .date(record.getRecordDate())
                     .image(record.getImageUrl())
+                    .content(record.getContent()) // 🔥 추가
                     .tags(record.getRecordTags().stream()
                             .map(rt -> rt.getTag().getName())
                             .collect(Collectors.toList()))
@@ -43,7 +45,21 @@ public class RecordDto {
         private String categoryName;
         private String recordDate;
         private String imageUrl;
+        private String content; // 🔥 추가
         private boolean isPublic;
         private List<Long> tagIds; // 선택한 태그들의 고유 ID 목록
+    }
+
+    // --- 🔥 추가: 수정용 (Request) ---
+    @Getter @Setter
+    @NoArgsConstructor
+    public static class UpdateRequest {
+        private String title;
+        private String categoryName;
+        private String recordDate;
+        private String imageUrl;
+        private String content; // 🔥 추가
+        private boolean isPublic;
+        private List<Long> tagIds;
     }
 }
