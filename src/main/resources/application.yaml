@@ -64,5 +64,5 @@ server:
 
 app:
   auth:
-    authorized-redirect-uris: ${FRONTEND_URL:https://cravelog.vercel.app}/oauth2/redirect
-    allowed-origins: ${FRONTEND_URL:https://cravelog.vercel.app}
+    authorized-redirect-uris: ${FRONTEND_URL}
+    allowed-origins: ${FRONTEND_URL}
