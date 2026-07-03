@@ -10,10 +10,6 @@ import java.util.Map;
 
 public class ProfileDto {
 
-    /**
-     * 프론트엔드와 통신하기 위한 응답/요청 객체
-     * React의 INITIAL_USER_DATA 구조와 1:1로 매칭되도록 설계했습니다.
-     */
     @Getter @Setter
     @Builder
     public static class Response {
@@ -34,8 +30,13 @@ public class ProfileDto {
 
         private Map<String, Boolean> privacy;
 
-        // User 엔티티를 DTO로 변환하는 정적 팩토리 메서드
         public static Response from(User user, boolean isOwner) {
+            // ⭐ NullPointerException을 막기 위해 null일 경우 빈 컬렉션으로 초기화
+            Map<String, Boolean> privacy = user.getPrivacySettings();
+            if (privacy == null) {
+                privacy = Map.of();
+            }
+
             Response response = Response.builder()
                     .name(user.getName())
                     .handle(user.getHandle())
@@ -44,13 +45,10 @@ public class ProfileDto {
                     .location(user.getLocation())
                     .bio(user.getBio())
                     .status(user.getStatusMessage())
-                    .tags(user.getTags())
-                    .goals(user.getGoals())
-                    .privacy(user.getPrivacySettings())
+                    .tags(user.getTags() != null ? user.getTags() : List.of())
+                    .goals(user.getGoals() != null ? user.getGoals() : List.of())
+                    .privacy(privacy)
                     .build();
-
-            // ⭐ 핵심 로직: 본인이 아니면(Guest) 프라이버시 설정에 따라 데이터를 필터링합니다.
-            Map<String, Boolean> privacy = user.getPrivacySettings();
 
             response.developer = (isOwner || Boolean.TRUE.equals(privacy.get("developer"))) ? user.getDeveloperData() : null;
             response.career = (isOwner || Boolean.TRUE.equals(privacy.get("career"))) ? user.getCareerData() : null;
