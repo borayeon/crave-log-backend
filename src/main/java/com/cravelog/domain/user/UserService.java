@@ -5,6 +5,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -51,5 +54,12 @@ public class UserService {
                 request.getBio(), request.getStatus(), request.getTags(), request.getGoals(),
                 request.getDeveloper(), request.getCareer(), request.getIdol(), request.getPrivacy()
         );
+        // ⭐️ 검색 기능 추가
+        @Transactional(readOnly = true)
+        public List<ProfileDto.Response> searchUsers(String keyword) {
+            return userRepository.findByNameContainingIgnoreCaseOrHandleContainingIgnoreCase(keyword, keyword)
+                    .stream()
+                    .map(user -> ProfileDto.Response.from(user, false)) // 퍼블릭 프로필 정보로 변환
+                    .collect(Collectors.toList());
+        }
     }
-}
