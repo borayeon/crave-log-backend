@@ -36,6 +36,10 @@ public class User extends BaseTimeEntity {
     private String location;
     private String statusMessage; // 예: CraveLog 엔진 고도화 중
 
+    // ⭐️ 프로필 이미지 저장 컬럼 추가 (Base64 저장을 위해 LONGTEXT 사용)
+    @Column(columnDefinition = "LONGTEXT")
+    private String profileImageUrl;
+
     @Column(columnDefinition = "TEXT")
     private String bio;
 
@@ -75,11 +79,9 @@ public class User extends BaseTimeEntity {
     }
 
     // 비즈니스 로직: 프로필 업데이트 메서드
-    public void updateProfile(String name, String role, String major, String location,
-                              String bio, String statusMessage, List<String> tags, List<String> goals,
-                              Map<String, Object> developerData, Map<String, Object> careerData,
-                              Map<String, Object> idolData, Map<String, Boolean> privacySettings) {
+    public void updateProfile(String name, String profileImageUrl, String role, String major, String location, String bio, String statusMessage, List<String> tags, List<String> goals, Map<String, Object> developerData, Map<String, Object> careerData, Map<String, Object> idolData, Map<String, Boolean> privacySettings) {
         this.name = name;
+        this.profileImageUrl = profileImageUrl;
         this.role = role;
         this.major = major;
         this.location = location;

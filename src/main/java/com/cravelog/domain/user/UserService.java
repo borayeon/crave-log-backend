@@ -45,9 +45,9 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        // User 엔티티의 정보 수정 (엔티티에 update 메서드를 추가로 작성해야 합니다)
+        // User 엔티티의 정보 수정 (profileImageUrl 추가)
         user.updateProfile(
-                request.getName(), request.getRole(), request.getMajor(), request.getLocation(),
+                request.getName(), request.getProfileImageUrl(), request.getRole(), request.getMajor(), request.getLocation(),
                 request.getBio(), request.getStatus(), request.getTags(), request.getGoals(),
                 request.getDeveloper(), request.getCareer(), request.getIdol(), request.getPrivacy()
         );
