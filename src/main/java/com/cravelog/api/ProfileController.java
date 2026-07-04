@@ -18,13 +18,21 @@ public class ProfileController {
     private final UserService userService;
 
     /**
-     * 1. 누구나 볼 수 있는 퍼블릭 프로필 조회 (비공개 데이터 필터링됨)
-     * GET /api/v1/users/taekyeong.dev/profile
+     * ⭐️ 검색 API 추가
      */
-    // ⭐️ 검색 API 추가
     @GetMapping("/users/search")
     public ResponseEntity<List<ProfileDto.Response>> searchUsers(@RequestParam String keyword) {
         return ResponseEntity.ok(userService.searchUsers(keyword));
+    }
+
+    /**
+     * 1. 누구나 볼 수 있는 퍼블릭 프로필 조회 (비공개 데이터 필터링됨)
+     * GET /api/v1/users/taekyeong.dev/profile
+     */
+    @GetMapping("/users/{handle}/profile")
+    public ResponseEntity<ProfileDto.Response> getPublicProfile(@PathVariable String handle) {
+        ProfileDto.Response response = userService.getPublicProfile(handle);
+        return ResponseEntity.ok(response);
     }
 
     /**
