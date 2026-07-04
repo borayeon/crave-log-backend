@@ -44,15 +44,16 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
+        // ⭐️ 수정: request.getProfileImageUrl() 파라미터가 두 번째 자리에 추가되었습니다.
         user.updateProfile(
-                request.getName(), request.getRole(), request.getMajor(), request.getLocation(),
+                request.getName(), request.getProfileImageUrl(), request.getRole(), request.getMajor(), request.getLocation(),
                 request.getBio(), request.getStatus(), request.getTags(), request.getGoals(),
                 request.getDeveloper(), request.getCareer(), request.getIdol(), request.getPrivacy()
         );
     }
 
     /**
-     * ⭐️ 유저 검색 기능
+     * ⭐️ 유저 검색 기능 (안전하게 DTO로 변환하여 반환)
      */
     @Transactional(readOnly = true)
     public List<ProfileDto.Response> searchUsers(String keyword) {
