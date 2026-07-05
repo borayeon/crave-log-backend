@@ -22,7 +22,10 @@ public class ProfileController {
      */
     @GetMapping("/users/search")
     public ResponseEntity<List<ProfileDto.Response>> searchUsers(@RequestParam String keyword) {
-        return ResponseEntity.ok(userService.searchUsers(keyword));
+        System.out.println("🔍 검색 요청 발생! 키워드: " + keyword);
+        List<ProfileDto.Response> results = userService.searchUsers(keyword);
+        System.out.println("📊 검색 결과 개수: " + results.size());
+        return ResponseEntity.ok(results);
     }
 
     /**
