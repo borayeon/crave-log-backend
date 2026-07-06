@@ -57,8 +57,17 @@ public class UserService {
      */
     @Transactional(readOnly = true)
     public List<ProfileDto.Response> searchUsers(String keyword) {
-        return userRepository.findByNameContainingIgnoreCaseOrHandleContainingIgnoreCase(keyword, keyword)
-                .stream()
+        List<User> users;
+
+        // 검색어가 없으면 전체를 가져오도록 처리
+        if (keyword == null || keyword.trim().isEmpty()) {
+            users = userRepository.findAll();
+        } else {
+            // 변경된 직접 작성 쿼리 메서드 호출
+            users = userRepository.searchUsers(keyword);
+        }
+
+        return users.stream()
                 .map(user -> ProfileDto.Response.from(user, false)) // 퍼블릭 프로필 정보로 변환하여 반환
                 .collect(Collectors.toList());
     }
