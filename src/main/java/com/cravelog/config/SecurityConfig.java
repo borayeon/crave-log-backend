@@ -15,7 +15,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-// ⭐️ 누락되었던 CORS 관련 import 문들
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -32,7 +31,6 @@ public class SecurityConfig {
     private final OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    // ⭐️ 비밀번호 암호화 인코더 빈 등록 (이메일 회원가입용)
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -47,7 +45,7 @@ public class SecurityConfig {
 
                 // 접근 권한 설정
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/auth/**").permitAll() // ⭐️ 이메일 회원가입/로그인 API 누구나 접근 허용
+                        .requestMatchers("/api/v1/auth/**").permitAll() // 이메일 회원가입/로그인 API 누구나 접근 허용
                         .requestMatchers("/api/v1/users/**").permitAll() // 퍼블릭 프로필 검색 및 조회 허용
                         .requestMatchers("/api/v1/me/**").authenticated() // 내 정보 관리는 로그인 필요
                         .anyRequest().permitAll()
@@ -68,12 +66,17 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // ⭐️ CORS 설정 빈 (에러가 났던 부분)
+    // ⭐️ CORS 설정 빈 (여기에 cravelog.me 도메인을 추가했습니다!)
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         // 허용할 프론트엔드 도메인들
-        configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:5173", "https://cravelog.vercel.app"));
+        configuration.setAllowedOrigins(List.of(
+                "http://localhost:3000",
+                "http://localhost:5173",
+                "https://cravelog.vercel.app",
+                "https://cravelog.me" // ⭐️ 추가: 실제 커스텀 도메인 허용
+        ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
