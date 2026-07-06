@@ -5,17 +5,17 @@ import com.cravelog.security.JwtAuthenticationFilter;
 import com.cravelog.security.OAuth2AuthenticationSuccessHandler;
 import com.cravelog.security.OAuth2AuthenticationFailureHandler;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder; // ⭐️ 추가
+import org.springframework.security.crypto.password.PasswordEncoder; // ⭐️ 추가
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
 
 import java.util.Arrays;
 
@@ -28,7 +28,11 @@ public class SecurityConfig {
     private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
     private final OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-
+    // ⭐️ 비밀번호 암호화 인코더 빈 등록
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
     // application.yml에서 프론트엔드 주소(Vercel)를 가져옵니다.
     @Value("${app.auth.allowed-origins}")
     private String allowedOrigins;
@@ -36,14 +40,13 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // ⭐️ 핵심 변경점: Spring Security 단에서 CORS 허용 설정을 직접 주입합니다.
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable()) // REST API이므로 CSRF 비활성화
-                // JWT를 사용하므로 세션을 사용하지 않음 (STATELESS)
+                .cors(cors -> {})
+                .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 // 접근 권한 설정
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/v1/auth/**").permitAll() // ⭐️ 회원가입, 이메일 로그인 API 허용
                         .requestMatchers("/api/v1/users/**").permitAll()
                         .requestMatchers("/api/v1/me/**").authenticated()
                         .anyRequest().permitAll()
@@ -55,8 +58,9 @@ public class SecurityConfig {
                                 .userService(customOAuth2UserService) // 카카오 데이터 처리
                         )
                         .successHandler(oAuth2AuthenticationSuccessHandler) // 성공 시 JWT 발급
-                        .failureHandler(oAuth2AuthenticationFailureHandler) // 실패 시 처리
+                        .failureHandler(oAuth2AuthenticationFailureHandler) // ⭐️ 실패 시 404 방지 및 에러 전달
                 )
+
 
                 // 에러 핸들링 (401 에러 반환)
                 .exceptionHandling(ex -> ex

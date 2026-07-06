@@ -12,6 +12,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByHandle(String handle);
     Optional<User> findByOauthId(String oauthId);
 
+    // ⭐️ 이메일 로그인 및 회원가입 중복 체크용 메서드 추가
+    Optional<User> findByEmail(String email);
+    boolean existsByEmail(String email);
+    boolean existsByHandle(String handle);
+
     // ⭐️ MySQL 특수문자 이스케이프 버그를 피하기 위해 직접 쿼리 작성
     @Query("SELECT u FROM User u WHERE LOWER(u.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(u.handle) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<User> searchUsers(@Param("keyword") String keyword);

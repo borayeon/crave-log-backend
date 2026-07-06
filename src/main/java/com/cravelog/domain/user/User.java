@@ -26,6 +26,8 @@ public class User extends BaseTimeEntity {
     private String oauthId;       // 소셜 서비스에서 발급한 고유 ID
     private String email;
 
+    private String password;
+
     @Column(unique = true, nullable = false)
     private String handle;        // 공유 URL용 고유 핸들 (예: taekyeong.dev)
 
@@ -70,10 +72,11 @@ public class User extends BaseTimeEntity {
     private Map<String, Boolean> privacySettings; // 예: {"developer": true, "career": true, "idol": false}
 
     @Builder
-    public User(String oauthProvider, String oauthId, String email, String name, String handle) {
+    public User(String oauthProvider, String oauthId, String email, String password, String name, String handle) {
         this.oauthProvider = oauthProvider;
         this.oauthId = oauthId;
         this.email = email;
+        this.password = password;
         this.name = name;
         this.handle = handle;
     }
