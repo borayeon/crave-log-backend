@@ -20,6 +20,7 @@ public class RecordDto {
         private String date;
         private String image;
         private String content; // 🔥 추가
+        private boolean isPublic; // ⭐️ 추가: 공개 여부 프론트로 전달
         private List<String> tags;
 
         public static Response from(Record record) {
@@ -30,6 +31,7 @@ public class RecordDto {
                     .date(record.getRecordDate())
                     .image(record.getImageUrl())
                     .content(record.getContent()) // 🔥 추가
+                    .isPublic(record.isPublic()) // ⭐️ 추가
                     .tags(record.getRecordTags().stream()
                             .map(rt -> rt.getTag().getName())
                             .collect(Collectors.toList()))
