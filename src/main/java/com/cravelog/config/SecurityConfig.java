@@ -18,6 +18,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 
 import java.util.List;
 
@@ -33,7 +34,9 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        // 기존: return new BCryptPasswordEncoder();
+        // 변경: Argon2id를 사용하며 권장 보안 파라미터 적용 (salt=16, hash=32, parallelism=1, memory=16MB, iterations=2)
+        return new Argon2PasswordEncoder(16, 32, 1, 16384, 2);
     }
 
     @Bean
