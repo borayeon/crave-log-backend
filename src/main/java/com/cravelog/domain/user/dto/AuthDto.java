@@ -27,4 +27,28 @@ public class AuthDto {
     public static class TokenResponse {
         private String token;
     }
+
+    // ⭐️ 아이디 찾기 요청
+    @Getter
+    @NoArgsConstructor
+    public static class FindIdRequest {
+        private String email;
+        private String name;
+    }
+
+    // ⭐️ 아이디 찾기 응답
+    @Getter
+    @AllArgsConstructor
+    public static class FindIdResponse {
+        private String handle;
+    }
+
+    // ⭐️ 비밀번호 재설정 요청
+    @Getter
+    @NoArgsConstructor
+    public static class ResetPasswordRequest {
+        private String email;
+        private String name;
+        private String newPassword;
+    }
 }

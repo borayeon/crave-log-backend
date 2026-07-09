@@ -22,14 +22,15 @@ public class User extends BaseTimeEntity {
     private Long id;
 
     // --- 소셜 로그인 및 식별 정보 ---
-    private String oauthProvider; // 예: KAKAO, GOOGLE
+    private String oauthProvider; // 예: KAKAO, GOOGLE, LOCAL
     private String oauthId;       // 소셜 서비스에서 발급한 고유 ID
     private String email;
 
+    // ⭐️ 로컬 로그인용 비밀번호 필드 추가
     private String password;
 
     @Column(unique = true, nullable = false)
-    private String handle;        // 공유 URL용 고유 핸들 (예: taekyeong.dev)
+    private String handle;        // 공유 URL용 고유 핸들 (예: taekyeong.dev)  // 공유 URL용 고유 핸들 (예: taekyeong.dev)
 
     // --- 기본 프로필 정보 (검색이나 목록 조회 시 자주 쓰이는 일반 컬럼) ---
     private String name;
@@ -82,7 +83,10 @@ public class User extends BaseTimeEntity {
     }
 
     // 비즈니스 로직: 프로필 업데이트 메서드
-    public void updateProfile(String name, String profileImageUrl, String role, String major, String location, String bio, String statusMessage, List<String> tags, List<String> goals, Map<String, Object> developerData, Map<String, Object> careerData, Map<String, Object> idolData, Map<String, Boolean> privacySettings) {
+    public void updateProfile(String name, String profileImageUrl, String role, String major, String location,
+                              String bio, String statusMessage, List<String> tags, List<String> goals,
+                              Map<String, Object> developerData, Map<String, Object> careerData, Map<String, Object> idolData,
+                              Map<String, Boolean> privacySettings) {
         this.name = name;
         this.profileImageUrl = profileImageUrl;
         this.role = role;
@@ -96,5 +100,10 @@ public class User extends BaseTimeEntity {
         this.careerData = careerData;
         this.idolData = idolData;
         this.privacySettings = privacySettings;
+    }
+
+    // ⭐️ 비밀번호 재설정을 위한 메서드 추가
+    public void updatePassword(String newPassword) {
+        this.password = newPassword;
     }
 }

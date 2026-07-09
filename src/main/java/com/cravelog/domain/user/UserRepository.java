@@ -17,6 +17,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByEmail(String email);
     boolean existsByHandle(String handle);
 
+    // ⭐️ 아이디/비밀번호 찾기용 메서드 추가
+    Optional<User> findByEmailAndName(String email, String name);
+
     // ⭐️ MySQL 특수문자 이스케이프 버그를 피하기 위해 직접 쿼리 작성
     @Query("SELECT u FROM User u WHERE LOWER(u.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(u.handle) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<User> searchUsers(@Param("keyword") String keyword);

@@ -55,4 +55,25 @@ public class AuthService {
         String token = jwtTokenProvider.createToken(user.getId());
         return new AuthDto.TokenResponse(token);
     }
+
+    /**
+     * ⭐️ 아이디 찾기 (이름과 이메일 매칭)
+     */
+    @Transactional(readOnly = true)
+    public AuthDto.FindIdResponse findId(AuthDto.FindIdRequest request) {
+        User user = userRepository.findByEmailAndName(request.getEmail(), request.getName())
+                .orElseThrow(() -> new IllegalArgumentException("입력하신 정보와 일치하는 계정이 없습니다."));
+        return new AuthDto.FindIdResponse(user.getHandle());
+    }
+
+    /**
+     * ⭐️ 비밀번호 재설정 (이름과 이메일 매칭 후 새 비밀번호 적용)
+     */
+    @Transactional
+    public void resetPassword(AuthDto.ResetPasswordRequest request) {
+        User user = userRepository.findByEmailAndName(request.getEmail(), request.getName())
+                .orElseThrow(() -> new IllegalArgumentException("입력하신 정보와 일치하는 계정이 없습니다."));
+
+        user.updatePassword(passwordEncoder.encode(request.getNewPassword()));
+    }
 }
