@@ -44,7 +44,7 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        // ⭐️ 수정: request.getProfileImageUrl() 파라미터가 두 번째 자리에 추가되었습니다.
+        // ⭐️ 프로필 이미지 URL 포함 업데이트
         user.updateProfile(
                 request.getName(), request.getProfileImageUrl(), request.getRole(), request.getMajor(), request.getLocation(),
                 request.getBio(), request.getStatus(), request.getTags(), request.getGoals(),
@@ -63,7 +63,7 @@ public class UserService {
         if (keyword == null || keyword.trim().isEmpty()) {
             users = userRepository.findAll();
         } else {
-            // 변경된 직접 작성 쿼리 메서드 호출
+            // ⭐️ 기존에 구현해둔 안전한 커스텀 쿼리 메서드 호출 (MySQL 특수문자 이스케이프 버그 방어)
             users = userRepository.searchUsers(keyword);
         }
 
