@@ -46,4 +46,11 @@ public class AuthController {
     public ResponseEntity<Map<String, String>> handleException(IllegalArgumentException e) {
         return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
     }
+
+    // ⭐️ 이메일 존재 여부 확인 API (2-Step 로그인을 위함)
+    @GetMapping("/check-email")
+    public ResponseEntity<Map<String, Boolean>> checkEmail(@RequestParam String email) {
+        boolean exists = authService.checkEmailExists(email);
+        return ResponseEntity.ok(Map.of("exists", exists));
+    }
 }

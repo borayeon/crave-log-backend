@@ -76,4 +76,10 @@ public class AuthService {
 
         user.updatePassword(passwordEncoder.encode(request.getNewPassword()));
     }
+
+    // ⭐️ 이메일 중복/존재 여부 확인
+    @Transactional(readOnly = true)
+    public boolean checkEmailExists(String email) {
+        return userRepository.existsByEmail(email);
+    }
 }
