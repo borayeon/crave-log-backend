@@ -19,7 +19,7 @@ public class RecordController {
     private final RecordService recordService;
 
     /**
-     * 1. 특정 유저의 카테고리/태그 트리 조회 (퍼블릭)
+     * 1. 특정 유저의 퍼블릭 카테고리/태그 트리 조회 (게스트용)
      */
     @GetMapping("/users/{handle}/categories")
     public ResponseEntity<List<TagTreeDto.CategoryResponse>> getTagTree(@PathVariable String handle) {
@@ -27,6 +27,9 @@ public class RecordController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * 1-1. 내 카테고리/태그 트리 조회 (마이페이지용)
+     */
     @GetMapping("/me/categories")
     public ResponseEntity<List<TagTreeDto.CategoryResponse>> getMyTagTree(@AuthenticationPrincipal User principal) {
         Long myUserId = Long.parseLong(principal.getUsername());
@@ -35,11 +38,11 @@ public class RecordController {
     }
 
     /**
-     * 2. 특정 유저의 퍼블릭 기록 목록 조회 (게스트용 - 비공개 필터링됨)
+     * ⭐️ 2. 특정 유저의 퍼블릭 기록 목록 조회 (게스트용 - 누락되었던 코드 복구!)
      */
     @GetMapping("/users/{handle}/records")
     public ResponseEntity<List<RecordDto.Response>> getPublicRecords(@PathVariable String handle) {
-        List<RecordDto.Response> response = recordService.getRecords(handle, false);
+        List<RecordDto.Response> response = recordService.getPublicRecords(handle);
         return ResponseEntity.ok(response);
     }
 
@@ -62,8 +65,9 @@ public class RecordController {
         recordService.createRecord(myUserId, request);
         return ResponseEntity.ok().build();
     }
+
     /**
-     * 🔥 추가: 4-1. 기존 기록 수정
+     * 4-1. 기존 기록 수정
      */
     @PutMapping("/me/records/{recordId}")
     public ResponseEntity<Void> updateRecord(@AuthenticationPrincipal User principal, @PathVariable Long recordId, @RequestBody RecordDto.UpdateRequest request) {
@@ -71,6 +75,7 @@ public class RecordController {
         recordService.updateRecord(myUserId, recordId, request);
         return ResponseEntity.ok().build();
     }
+
     /**
      * 5. 특정 기록 삭제
      */
