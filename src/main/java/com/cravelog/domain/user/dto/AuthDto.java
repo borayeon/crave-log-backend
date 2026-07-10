@@ -3,16 +3,18 @@ package com.cravelog.domain.user.dto;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 public class AuthDto {
 
-    @Getter
+    // ⭐️ 회원가입 요청 DTO (handle 추가)
+    @Getter @Setter
     @NoArgsConstructor
     public static class SignupRequest {
         private String email;
         private String password;
         private String name;
-        private String handle; // 고유 ID
+        private String handle;
     }
 
     @Getter

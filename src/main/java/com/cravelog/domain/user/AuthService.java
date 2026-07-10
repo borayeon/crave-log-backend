@@ -16,23 +16,24 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
 
     /**
-     * ⭐️ 로컬 이메일 회원가입
+     * ⭐️ 회원가입 (이메일, 아이디 중복 체크 및 비밀번호 암호화)
      */
     @Transactional
     public void signup(AuthDto.SignupRequest request) {
+        // 1. 중복 방어 로직
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("이미 가입된 이메일입니다.");
         }
         if (userRepository.existsByHandle(request.getHandle())) {
-            throw new IllegalArgumentException("이미 사용 중인 아이디(핸들)입니다.");
+            throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
         }
 
+        // 2. 유저 생성 및 암호화
         User user = User.builder()
                 .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword())) // 비밀번호 암호화 저장
+                .password(passwordEncoder.encode(request.getPassword())) // 비밀번호 안전하게 암호화
                 .name(request.getName())
                 .handle(request.getHandle())
-                .oauthProvider("LOCAL") // 카카오가 아닌 자체 회원가입임을 명시
                 .build();
 
         userRepository.save(user);

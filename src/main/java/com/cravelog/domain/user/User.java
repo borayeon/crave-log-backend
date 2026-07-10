@@ -26,7 +26,8 @@ public class User extends BaseTimeEntity {
     private String oauthId;       // 소셜 서비스에서 발급한 고유 ID
     private String email;
 
-    // ⭐️ 로컬 로그인용 비밀번호 필드 추가
+    // ⭐️ 이메일 로그인을 위한 비밀번호 필드 추가
+    @Column(length = 255)
     private String password;
 
     @Column(unique = true, nullable = false)
