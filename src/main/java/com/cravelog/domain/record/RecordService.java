@@ -105,6 +105,7 @@ public class RecordService {
                 .categoryName(request.getCategoryName())
                 .recordDate(request.getRecordDate())
                 .imageUrl(request.getImageUrl())
+                .youtubeUrl(request.getYoutubeUrl())
                 .content(request.getContent())
                 .isPublic(request.isPublic())
                 .build();
@@ -130,8 +131,15 @@ public class RecordService {
             throw new IllegalArgumentException("수정 권한이 없습니다.");
         }
 
-        record.update(request.getTitle(), request.getCategoryName(), request.getRecordDate(), request.getImageUrl(), request.getContent(), request.isPublic());
-
+        record.update(
+                request.getTitle(),
+                request.getCategoryName(),
+                request.getRecordDate(),
+                request.getImageUrl(),
+                request.getYoutubeUrl(),
+                request.getContent(),
+                request.isPublic()
+        );
         record.getRecordTags().clear();
 
         if (request.getTagIds() != null && !request.getTagIds().isEmpty()) {
