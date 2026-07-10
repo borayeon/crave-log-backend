@@ -21,6 +21,7 @@ public class RecordDto {
         private String date;
         private String image;
         private String content;
+        private String youtubeUrl;
 
         @JsonProperty("isPublic") // ⭐️ JSON 매핑 시 'is'가 사라지는 문제 해결!
         private boolean isPublic;
@@ -35,6 +36,7 @@ public class RecordDto {
                     .date(record.getRecordDate())
                     .image(record.getImageUrl())
                     .content(record.getContent())
+                    .youtubeUrl(record.getYoutubeUrl())
                     .isPublic(record.isPublic())
                     .tags(record.getRecordTags().stream()
                             .map(rt -> rt.getTag().getName())
@@ -44,32 +46,38 @@ public class RecordDto {
     }
 
     // --- 생성용 (Request) ---
-    @Getter @Setter
+    @Getter
+    @Setter
     @NoArgsConstructor
     public static class CreateRequest {
+
         private String title;
         private String categoryName;
         private String recordDate;
         private String imageUrl;
         private String content;
+        private String youtubeUrl;
 
-        @JsonProperty("isPublic") // ⭐️
+        @JsonProperty("isPublic")
         private boolean isPublic;
 
         private List<Long> tagIds;
     }
 
     // --- 수정용 (Request) ---
-    @Getter @Setter
+    @Getter
+    @Setter
     @NoArgsConstructor
     public static class UpdateRequest {
+
         private String title;
         private String categoryName;
         private String recordDate;
         private String imageUrl;
         private String content;
+        private String youtubeUrl;
 
-        @JsonProperty("isPublic") // ⭐️
+        @JsonProperty("isPublic")
         private boolean isPublic;
 
         private List<Long> tagIds;

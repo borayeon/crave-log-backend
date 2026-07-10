@@ -37,6 +37,10 @@ public class Record extends BaseTimeEntity {
     @Column(columnDefinition = "TEXT")
     private String content;      // 기록의 간단한 내용(메모)
 
+    // Record.java 에 필드 추가
+    @Column(length = 500)
+    private String youtubeUrl;
+
     // 이 기록 자체를 남에게 숨길 것인지 여부
     @Column(nullable = false)
     private boolean isPublic = true;

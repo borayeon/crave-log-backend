@@ -1,5 +1,7 @@
 package com.cravelog.domain.user;
 
+import com.cravelog.domain.tag.Category;
+import com.cravelog.domain.tag.CategoryRepository;
 import com.cravelog.domain.user.dto.AuthDto;
 import com.cravelog.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +16,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final CategoryRepository categoryRepository;
 
     /**
      * ⭐️ 회원가입 (이메일, 아이디 중복 체크 및 비밀번호 암호화)
@@ -37,6 +40,10 @@ public class AuthService {
                 .build();
 
         userRepository.save(user);
+
+        // ⭐️ 신규 가입자에게 '음악' 카테고리 기본 부여
+        Category defaultMusicCategory = new Category(user, "음악");
+        categoryRepository.save(defaultMusicCategory);
     }
 
     /**
