@@ -49,23 +49,26 @@ public class Record extends BaseTimeEntity {
     @OneToMany(mappedBy = "record", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RecordTag> recordTags = new ArrayList<>();
 
+    // ⭐️ 수정: youtubeUrl 파라미터 추가
     @Builder
-    public Record(User user, String title, String categoryName, String recordDate, String imageUrl, String content, boolean isPublic) {
+    public Record(User user, String title, String categoryName, String recordDate, String imageUrl, String youtubeUrl, String content, boolean isPublic) {
         this.user = user;
         this.title = title;
         this.categoryName = categoryName;
         this.recordDate = recordDate;
         this.imageUrl = imageUrl;
+        this.youtubeUrl = youtubeUrl; // ⭐️ 추가
         this.content = content;
         this.isPublic = isPublic;
     }
 
-    // 🔥 추가: 기록의 내용을 변경하는 메서드
-    public void update(String title, String categoryName, String recordDate, String imageUrl, String content, boolean isPublic) {
+    // 🔥 수정: youtubeUrl 파라미터 추가
+    public void update(String title, String categoryName, String recordDate, String imageUrl, String youtubeUrl, String content, boolean isPublic) {
         this.title = title;
         this.categoryName = categoryName;
         this.recordDate = recordDate;
         this.imageUrl = imageUrl;
+        this.youtubeUrl = youtubeUrl; // ⭐️ 추가
         this.content = content;
         this.isPublic = isPublic;
     }
