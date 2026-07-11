@@ -4,6 +4,7 @@ import com.cravelog.security.CustomOAuth2UserService;
 import com.cravelog.security.JwtAuthenticationFilter;
 import com.cravelog.security.OAuth2AuthenticationFailureHandler;
 import com.cravelog.security.OAuth2AuthenticationSuccessHandler;
+import jakarta.servlet.http.HttpServletResponse; // ⭐️ HttpServletResponse 임포트 추가
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,11 +15,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 
 import java.util.List;
 
@@ -34,9 +33,7 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        // 기존: return new BCryptPasswordEncoder();
-        // 변경: Argon2id를 사용하며 권장 보안 파라미터 적용 (salt=16, hash=32, parallelism=1, memory=16MB, iterations=2)
-        return new Argon2PasswordEncoder(16, 32, 1, 16384, 2);
+        return new BCryptPasswordEncoder();
     }
 
     @Bean
@@ -63,13 +60,20 @@ public class SecurityConfig {
                         .failureHandler(oAuth2AuthenticationFailureHandler)
                 )
 
+                // ⭐️ 핵심: 인증되지 않은 API 요청(AJAX) 시 302 리다이렉트 대신 401 에러 반환
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
+                        })
+                )
+
                 // JWT 필터 등록
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-    // ⭐️ CORS 설정 빈 (여기에 cravelog.me 도메인을 추가했습니다!)
+    // CORS 설정 빈
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -78,7 +82,7 @@ public class SecurityConfig {
                 "http://localhost:3000",
                 "http://localhost:5173",
                 "https://cravelog.vercel.app",
-                "https://cravelog.me" // ⭐️ 추가: 실제 커스텀 도메인 허용
+                "https://cravelog.me"
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
