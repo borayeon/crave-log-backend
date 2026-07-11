@@ -7,7 +7,6 @@ import lombok.Setter;
 
 public class AuthDto {
 
-    // ⭐️ 회원가입 요청 DTO (handle 추가)
     @Getter @Setter
     @NoArgsConstructor
     public static class SignupRequest {
@@ -30,27 +29,27 @@ public class AuthDto {
         private String token;
     }
 
-    // ⭐️ 아이디 찾기 요청
+    // ⭐️ 인증번호 전송 요청
     @Getter
     @NoArgsConstructor
-    public static class FindIdRequest {
+    public static class EmailSendRequest {
         private String email;
-        private String name;
     }
 
-    // ⭐️ 아이디 찾기 응답
+    // ⭐️ 인증번호 검증 요청
     @Getter
-    @AllArgsConstructor
-    public static class FindIdResponse {
-        private String handle;
+    @NoArgsConstructor
+    public static class EmailVerifyRequest {
+        private String email;
+        private String code;
     }
 
-    // ⭐️ 비밀번호 재설정 요청
+    // ⭐️ 인증된 이메일 기반 비밀번호 재설정 요청 (수정됨)
     @Getter
     @NoArgsConstructor
     public static class ResetPasswordRequest {
         private String email;
-        private String name;
+        private String code; // 2차 검증용
         private String newPassword;
     }
 }

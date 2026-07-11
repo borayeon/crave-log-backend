@@ -17,13 +17,10 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final CategoryRepository categoryRepository;
+    private final EmailService emailService; // ⭐️ EmailService 주입
 
-    /**
-     * ⭐️ 회원가입 (이메일, 아이디 중복 체크 및 비밀번호 암호화)
-     */
     @Transactional
     public void signup(AuthDto.SignupRequest request) {
-        // 1. 중복 방어 로직
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("이미 가입된 이메일입니다.");
         }
@@ -31,63 +28,65 @@ public class AuthService {
             throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
         }
 
-        // 2. 유저 생성 및 암호화
         User user = User.builder()
                 .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword())) // 비밀번호 안전하게 암호화
+                .password(passwordEncoder.encode(request.getPassword()))
                 .name(request.getName())
                 .handle(request.getHandle())
                 .build();
 
         userRepository.save(user);
 
-        // ⭐️ 신규 가입자에게 '음악' 카테고리 기본 부여
         Category defaultMusicCategory = new Category(user, "음악");
         categoryRepository.save(defaultMusicCategory);
     }
 
-    /**
-     * ⭐️ 로컬 이메일 로그인
-     */
     @Transactional(readOnly = true)
     public AuthDto.TokenResponse login(AuthDto.LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 이메일입니다."));
 
-        // 암호화된 비밀번호 비교 검증
         if (user.getPassword() == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
 
-        // 로그인 성공 시 JWT 토큰 발급
         String token = jwtTokenProvider.createToken(user.getId());
         return new AuthDto.TokenResponse(token);
     }
 
-    /**
-     * ⭐️ 아이디 찾기 (이름과 이메일 매칭)
-     */
-    @Transactional(readOnly = true)
-    public AuthDto.FindIdResponse findId(AuthDto.FindIdRequest request) {
-        User user = userRepository.findByEmailAndName(request.getEmail(), request.getName())
-                .orElseThrow(() -> new IllegalArgumentException("입력하신 정보와 일치하는 계정이 없습니다."));
-        return new AuthDto.FindIdResponse(user.getHandle());
-    }
-
-    /**
-     * ⭐️ 비밀번호 재설정 (이름과 이메일 매칭 후 새 비밀번호 적용)
-     */
-    @Transactional
-    public void resetPassword(AuthDto.ResetPasswordRequest request) {
-        User user = userRepository.findByEmailAndName(request.getEmail(), request.getName())
-                .orElseThrow(() -> new IllegalArgumentException("입력하신 정보와 일치하는 계정이 없습니다."));
-
-        user.updatePassword(passwordEncoder.encode(request.getNewPassword()));
-    }
-
-    // ⭐️ 이메일 중복/존재 여부 확인
     @Transactional(readOnly = true)
     public boolean checkEmailExists(String email) {
         return userRepository.existsByEmail(email);
+    }
+
+    // ⭐️ 비밀번호 재설정 인증번호 발송
+    public void sendPasswordResetEmail(String email) {
+        if (!userRepository.existsByEmail(email)) {
+            throw new IllegalArgumentException("가입되지 않은 이메일입니다.");
+        }
+        emailService.sendVerificationCode(email);
+    }
+
+    // ⭐️ 인증번호 검증
+    public boolean verifyEmailCode(String email, String code) {
+        return emailService.verifyCode(email, code);
+    }
+
+    // ⭐️ 인증 완료 후 최종 비밀번호 재설정
+    @Transactional
+    public void resetPasswordWithCode(AuthDto.ResetPasswordRequest request) {
+        // 1. 혹시 모를 우회 접근을 막기 위해 마지막으로 코드 한 번 더 검증
+        if (!emailService.verifyCode(request.getEmail(), request.getCode())) {
+            throw new IllegalArgumentException("인증번호가 만료되었거나 일치하지 않습니다.");
+        }
+
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 이메일입니다."));
+
+        // 2. 비밀번호 업데이트
+        user.updatePassword(passwordEncoder.encode(request.getNewPassword()));
+
+        // 3. 재사용 방지를 위해 Redis에서 인증번호 삭제
+        emailService.deleteCode(request.getEmail());
     }
 }
