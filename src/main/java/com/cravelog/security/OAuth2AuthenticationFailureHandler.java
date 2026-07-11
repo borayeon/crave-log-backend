@@ -15,8 +15,8 @@ import java.nio.charset.StandardCharsets;
 @Component
 public class OAuth2AuthenticationFailureHandler extends SimpleUrlAuthenticationFailureHandler {
 
-    // ⭐️ application.yml에 등록된 프론트엔드 주소를 가져옵니다 (Render 환경변수)
-    @Value("${app.auth.allowed-origins}")
+    // ⭐️ FIX: Added a default value (http://localhost:5173)
+    @Value("${app.auth.allowed-origins:http://localhost:5173}")
     private String frontendUrl;
 
     @Override
@@ -26,7 +26,6 @@ public class OAuth2AuthenticationFailureHandler extends SimpleUrlAuthenticationF
 
         String errorMessage = URLEncoder.encode(exception.getMessage(), StandardCharsets.UTF_8);
 
-        // ⭐️ 고정된 localhost 대신 Vercel 도메인으로 리다이렉트합니다.
         getRedirectStrategy().sendRedirect(request, response, frontendUrl + "?error=" + errorMessage);
     }
 }
