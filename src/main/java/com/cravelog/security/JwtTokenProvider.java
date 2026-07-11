@@ -15,9 +15,10 @@ public class JwtTokenProvider {
     private final Key key;
     private final long expirationTime;
 
+    // ⭐️ FIX: Render 배포 시 환경 변수 누락을 대비해 안전한 기본값을 줍니다.
     public JwtTokenProvider(
-            @Value("${jwt.secret}") String secretKey,
-            @Value("${jwt.expiration}") long expirationTime) {
+            @Value("${jwt.secret:cravelog_default_secret_key_which_must_be_long_enough_for_hs256_1234567890}") String secretKey,
+            @Value("${jwt.expiration:86400000}") long expirationTime) {
         this.key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
         this.expirationTime = expirationTime;
     }
