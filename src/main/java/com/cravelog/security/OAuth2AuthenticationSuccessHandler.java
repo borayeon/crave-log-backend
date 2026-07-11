@@ -18,7 +18,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
     private final JwtTokenProvider tokenProvider;
 
-    // ⭐️ FIX: 콜론(:) 뒤에 기본값을 추가하여 값을 찾지 못해도 서버가 터지지 않게 방어합니다.
+    // ⭐️ 수정: 기본값 리다이렉트 URI를 /oauth2/redirect 로 다시 변경
     @Value("${app.auth.authorized-redirect-uris:http://localhost:5173/oauth2/redirect}")
     private String redirectUri;
 

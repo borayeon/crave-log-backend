@@ -71,11 +71,9 @@ spring:
 
 app:
   auth:
-    authorized-redirect-uris:
-      - http://localhost:5173/oauth2/redirect
-
-    allowed-origins:
-      - http://localhost:5173
+    # ⭐️ 원래대로 복구
+    authorized-redirect-uris: http://localhost:5173/oauth2/redirect
+    allowed-origins: http://localhost:5173
 
 ---
 # ==========================================
@@ -99,8 +97,6 @@ spring:
 
 app:
   auth:
-    authorized-redirect-uris:
-      - ${FRONTEND_URL}/oauth2/redirect
-
-    allowed-origins:
-      - ${FRONTEND_URL}
+    # ⭐️ 원래대로 복구
+    authorized-redirect-uris: ${FRONTEND_URL}/oauth2/redirect
+    allowed-origins: ${FRONTEND_URL}
