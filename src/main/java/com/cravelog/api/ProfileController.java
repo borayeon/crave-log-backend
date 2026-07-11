@@ -58,4 +58,24 @@ public class ProfileController {
         userService.updateProfile(myUserId, request);
         return ResponseEntity.ok().build();
     }
+
+    /**
+     * 5. ⭐️ 비밀번호 변경 API
+     */
+    @PutMapping("/me/password")
+    public ResponseEntity<Void> changePassword(@AuthenticationPrincipal User principal, @RequestBody ProfileDto.ChangePasswordRequest request) {
+        Long myUserId = Long.parseLong(principal.getUsername());
+        userService.changePassword(myUserId, request);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * 6. ⭐️ 계정 탈퇴 API
+     */
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> deleteAccount(@AuthenticationPrincipal User principal, @RequestBody ProfileDto.DeleteAccountRequest request) {
+        Long myUserId = Long.parseLong(principal.getUsername());
+        userService.deleteAccount(myUserId, request);
+        return ResponseEntity.ok().build();
+    }
 }

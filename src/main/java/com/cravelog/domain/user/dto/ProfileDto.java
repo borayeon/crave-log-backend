@@ -80,4 +80,17 @@ public class ProfileDto {
         private Map<String, Object> idol;
         private Map<String, Boolean> privacy;
     }
+
+    // ⭐️ 비밀번호 변경 요청 DTO
+    @Getter @Setter
+    public static class ChangePasswordRequest {
+        private String currentPassword;
+        private String newPassword;
+    }
+
+    // ⭐️ 계정 탈퇴 요청 DTO
+    @Getter @Setter
+    public static class DeleteAccountRequest {
+        private String password;
+    }
 }
