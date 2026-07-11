@@ -98,5 +98,5 @@ spring:
 app:
   auth:
     # ⭐️ 원래대로 복구
-    authorized-redirect-uris: ${FRONTEND_URL}/oauth2/redirect
+    authorized-redirect-uris: ${FRONTEND_URL}
     allowed-origins: ${FRONTEND_URL}
