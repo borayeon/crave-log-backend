@@ -19,7 +19,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     private final JwtTokenProvider tokenProvider;
 
     // ⭐️ 수정: 기본값 리다이렉트 URI를 /oauth2/redirect 로 다시 변경
-    @Value("${app.auth.authorized-redirect-uris:http://localhost:5173/oauth2/redirect}")
+    @Value("${app.auth.authorized-redirect-uris}")
     private String redirectUri;
 
     @Override
