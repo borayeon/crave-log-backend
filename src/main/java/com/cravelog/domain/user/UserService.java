@@ -88,6 +88,11 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
+        // ⭐️ 카카오 등 소셜 유저는 변경 불가 방어
+        if (user.getOauthProvider() != null) {
+            throw new IllegalArgumentException("소셜 연동 계정은 비밀번호를 변경할 수 없습니다.");
+        }
+
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
             throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
         }
@@ -103,8 +108,11 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+        // ⭐️ 소셜 연동 계정이 아닐 때(이메일 가입자일 때)만 비밀번호 검증
+        if (user.getOauthProvider() == null) {
+            if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+                throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+            }
         }
 
         // 1. 유저가 작성한 모든 기록 지우기

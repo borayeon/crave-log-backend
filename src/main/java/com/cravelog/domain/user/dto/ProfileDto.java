@@ -22,6 +22,8 @@ public class ProfileDto {
         private String bio;
         private String status;
 
+        private String oauthProvider;
+
         private List<String> tags;
         private List<String> goals;
 
@@ -49,6 +51,7 @@ public class ProfileDto {
                     .location(user.getLocation())
                     .bio(user.getBio())
                     .status(user.getStatusMessage())
+                    .oauthProvider(user.getOauthProvider())
                     .tags(user.getTags() != null ? user.getTags() : List.of())
                     .goals(user.getGoals() != null ? user.getGoals() : List.of())
                     .privacy(privacy) // 이제 이 줄이 정상 작동합니다.

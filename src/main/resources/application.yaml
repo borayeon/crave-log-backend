@@ -103,6 +103,11 @@ spring:
     activate:
       on-profile: prod
 
+  # ⭐️ 추가: 클라우드 Redis(Upstash) 접근을 위한 SSL 보안 연결 활성화
+  data:
+    redis:
+      ssl:
+        enabled: true
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
