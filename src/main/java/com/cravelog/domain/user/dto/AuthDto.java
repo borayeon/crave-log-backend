@@ -16,7 +16,7 @@ public class AuthDto {
         private String handle;
     }
 
-    @Getter
+    @Getter @Setter
     @NoArgsConstructor
     public static class LoginRequest {
         private String email;
@@ -29,27 +29,40 @@ public class AuthDto {
         private String token;
     }
 
-    // ⭐️ 인증번호 전송 요청
+    @Getter @Setter
+    @NoArgsConstructor
+    public static class FindIdRequest {
+        private String email;
+        private String name;
+    }
+
     @Getter
+    @AllArgsConstructor
+    public static class FindIdResponse {
+        private String handle;
+    }
+
+    // ⭐️ 수정: @Setter 추가 (JSON 데이터 바인딩 오류 방지)
+    @Getter @Setter
     @NoArgsConstructor
     public static class EmailSendRequest {
         private String email;
     }
 
-    // ⭐️ 인증번호 검증 요청
-    @Getter
+    // ⭐️ 수정: @Setter 추가
+    @Getter @Setter
     @NoArgsConstructor
     public static class EmailVerifyRequest {
         private String email;
         private String code;
     }
 
-    // ⭐️ 인증된 이메일 기반 비밀번호 재설정 요청 (수정됨)
-    @Getter
+    // ⭐️ 수정: @Setter 추가
+    @Getter @Setter
     @NoArgsConstructor
     public static class ResetPasswordRequest {
         private String email;
-        private String code; // 2차 검증용
+        private String code;
         private String newPassword;
     }
 }
