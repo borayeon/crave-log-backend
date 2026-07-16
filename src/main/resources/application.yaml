@@ -37,9 +37,7 @@ spring:
   # ⭐️ Redis 연동 설정 추가
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
+      url: ${REDIS_URL:redis://localhost:6379}
 jwt:
   secret: ${JWT_SECRET}
   expiration: 7200000
@@ -85,11 +83,6 @@ spring:
     activate:
       on-profile: prod
 
-  # ⭐️ 추가: 클라우드 Redis(Upstash) 접근을 위한 SSL 보안 연결 활성화
-  data:
-    redis:
-      ssl:
-        enabled: true
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
