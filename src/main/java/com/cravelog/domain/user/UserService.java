@@ -52,19 +52,28 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        // ⭐️ 고유 아이디(handle) 변경 요청이 들어왔고, 기존과 다르다면 중복 검사 진행
-        if (request.getHandle() != null && !request.getHandle().equals(user.getHandle())) {
-            if (userRepository.existsByHandle(request.getHandle())) {
-                throw new IllegalArgumentException("이미 사용 중인 고유 아이디입니다.");
+        // ⭐️ 1. 아이디 중복 검사 및 교체 (소문자 변환 및 공백 제거로 더 안전하게 검증)
+        if (request.getHandle() != null && !request.getHandle().trim().isEmpty()) {
+            String newHandle = request.getHandle().trim().toLowerCase();
+
+            if (!newHandle.equals(user.getHandle())) { // 기존 아이디와 다를 때만 검사
+                if (userRepository.existsByHandle(newHandle)) {
+                    // ⭐️ 이제 이 에러가 무시되지 않고 프론트엔드에 토스트 알림으로 뜹니다!
+                    throw new IllegalArgumentException("이미 사용 중인 고유 아이디입니다.");
+                }
+                user.updateHandle(newHandle); // 아이디 교체
             }
-            user.updateHandle(request.getHandle());
         }
 
+        // ⭐️ 2. 기존 프로필 정보 업데이트
         user.updateProfile(
                 request.getName(), request.getProfileImageUrl(), request.getRole(), request.getMajor(), request.getLocation(),
                 request.getBio(), request.getStatus(), request.getTags(), request.getGoals(),
                 request.getDeveloper(), request.getCareer(), request.getIdol(), request.getPrivacy()
         );
+
+        // ⭐️ 3. 핵심: 자동 저장에만 의존하지 않고 명시적으로 강제 DB 저장!!
+        userRepository.save(user);
     }
 
     /**

@@ -9,6 +9,7 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map; // ⭐️ 추가
 
 @RestController
 @RequestMapping("/api/v1")
@@ -77,5 +78,10 @@ public class ProfileController {
         Long myUserId = Long.parseLong(principal.getUsername());
         userService.deleteAccount(myUserId, request);
         return ResponseEntity.ok().build();
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, String>> handleException(IllegalArgumentException e) {
+        return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
     }
 }
