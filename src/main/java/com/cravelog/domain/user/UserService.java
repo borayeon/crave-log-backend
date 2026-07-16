@@ -52,7 +52,14 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        // ⭐️ 프로필 이미지 URL 포함 업데이트
+        // ⭐️ 고유 아이디(handle) 변경 요청이 들어왔고, 기존과 다르다면 중복 검사 진행
+        if (request.getHandle() != null && !request.getHandle().equals(user.getHandle())) {
+            if (userRepository.existsByHandle(request.getHandle())) {
+                throw new IllegalArgumentException("이미 사용 중인 고유 아이디입니다.");
+            }
+            user.updateHandle(request.getHandle());
+        }
+
         user.updateProfile(
                 request.getName(), request.getProfileImageUrl(), request.getRole(), request.getMajor(), request.getLocation(),
                 request.getBio(), request.getStatus(), request.getTags(), request.getGoals(),

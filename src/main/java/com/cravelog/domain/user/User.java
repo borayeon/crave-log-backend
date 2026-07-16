@@ -107,4 +107,9 @@ public class User extends BaseTimeEntity {
     public void updatePassword(String newPassword) {
         this.password = newPassword;
     }
+
+    // ⭐️ 고유 아이디 업데이트 전용 메서드
+    public void updateHandle(String handle) {
+        this.handle = handle;
+    }
 }

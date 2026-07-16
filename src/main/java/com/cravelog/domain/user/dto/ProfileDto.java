@@ -67,6 +67,7 @@ public class ProfileDto {
 
     @Getter @Setter
     public static class UpdateRequest {
+        private String handle; // ⭐️ 추가됨
         private String name;
         private String profileImageUrl;
         private String role;
