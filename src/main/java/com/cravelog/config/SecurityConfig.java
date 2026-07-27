@@ -77,7 +77,8 @@ public class SecurityConfig {
                 "http://localhost:3000",
                 "http://localhost:5173",
                 "https://cravelog.vercel.app",
-                "https://cravelog.me"
+                "https://cravelog.me",
+                "https://www.cravelog.me" // ⭐️ 추가된 부분!
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
