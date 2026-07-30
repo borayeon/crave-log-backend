@@ -11,5 +11,5 @@ COPY build/libs/*SNAPSHOT.jar app.jar
 # 애플리케이션 포트
 EXPOSE 8080
 
-# 컨테이너 실행 시 작동할 명령어
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# ⭐️ 컨테이너 실행 시 작동할 명령어 (prod 프로필 명시!)
+ENTRYPOINT ["java", "-jar", "app.jar", "--spring.profiles.active=prod"]
