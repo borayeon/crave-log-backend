@@ -12,6 +12,7 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional; // ⭐️ 꼭 추가해주세요!
 
 import java.util.Collections;
 import java.util.Map;
@@ -22,9 +23,10 @@ import java.util.Optional;
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
     private final UserRepository userRepository;
-    private final CategoryRepository categoryRepository; // ⭐️ 카테고리 저장소 추가
+    private final CategoryRepository categoryRepository;
 
     @Override
+    @Transactional // ⭐️ 추가: 유저 저장과 카테고리 저장을 하나의 작업 단위로 묶어줌
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
         OAuth2User oAuth2User = super.loadUser(userRequest);
         Map<String, Object> attributes = oAuth2User.getAttributes();
@@ -43,7 +45,6 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         if (userOptional.isPresent()) {
             user = userOptional.get();
-            // 기존 유저면 정보 갱신 처리 등을 할 수 있음
         } else {
             // ⭐️ 새 유저 가입 처리
             user = User.builder()
@@ -51,20 +52,20 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                     .oauthId(oauthId)
                     .name(nickname)
                     .email(email)
-                    .handle("user_" + oauthId) // 초기 핸들값 자동 부여
+                    .handle("user_" + oauthId)
                     .build();
-            userRepository.save(user);
+            userRepository.save(user); // 유저 먼저 저장
 
-            // ⭐️ 이메일 가입과 동일하게 기본 '음악' 카테고리 생성 로직 추가!
+            // ⭐️ 기본 카테고리 생성 로직
             Category defaultMusicCategory = new Category(user, "음악");
             categoryRepository.save(defaultMusicCategory);
         }
 
-        // 3. Spring Security 내부에서 사용할 유저 객체 반환 (PK인 user.getId()를 nameAttributeKey로 사용)
+        // 3. Spring Security 내부에서 사용할 유저 객체 반환
         return new DefaultOAuth2User(
                 Collections.singleton(new SimpleGrantedAuthority("ROLE_USER")),
-                Map.of("id", user.getId(), "oauthId", oauthId), // attributes
-                "id" // nameAttributeKey
+                Map.of("id", user.getId(), "oauthId", oauthId),
+                "id"
         );
     }
 }
