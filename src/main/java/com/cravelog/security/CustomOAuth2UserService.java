@@ -1,5 +1,7 @@
 package com.cravelog.security;
 
+import com.cravelog.domain.tag.Category;
+import com.cravelog.domain.tag.CategoryRepository;
 import com.cravelog.domain.user.User;
 import com.cravelog.domain.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +22,7 @@ import java.util.Optional;
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
     private final UserRepository userRepository;
+    private final CategoryRepository categoryRepository; // ⭐️ 카테고리 저장소 추가
 
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
@@ -42,7 +45,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             user = userOptional.get();
             // 기존 유저면 정보 갱신 처리 등을 할 수 있음
         } else {
-            // 새 유저 가입 처리
+            // ⭐️ 새 유저 가입 처리
             user = User.builder()
                     .oauthProvider("KAKAO")
                     .oauthId(oauthId)
@@ -51,6 +54,10 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                     .handle("user_" + oauthId) // 초기 핸들값 자동 부여
                     .build();
             userRepository.save(user);
+
+            // ⭐️ 이메일 가입과 동일하게 기본 '음악' 카테고리 생성 로직 추가!
+            Category defaultMusicCategory = new Category(user, "음악");
+            categoryRepository.save(defaultMusicCategory);
         }
 
         // 3. Spring Security 내부에서 사용할 유저 객체 반환 (PK인 user.getId()를 nameAttributeKey로 사용)
