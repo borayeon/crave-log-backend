@@ -80,7 +80,7 @@ public class SecurityConfig {
                 "https://cravelog.me",
                 "https://www.cravelog.me" // ⭐️ 추가된 부분!
         ));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
 
