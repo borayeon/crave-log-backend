@@ -9,6 +9,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -35,10 +37,14 @@ public class AuthService {
                 .handle(request.getHandle())
                 .build();
 
-        userRepository.save(user);
+        userRepository.save(user); // 1. 유저 먼저 저장
 
-        Category defaultMusicCategory = new Category(user, "음악");
-        categoryRepository.save(defaultMusicCategory);
+        // ⭐️ 2. 기본 카테고리 여러 개를 리스트로 묶어서 한 번에 저장!
+        List<Category> defaultCategories = List.of(
+                new Category(user, "음악"),
+                new Category(user, "🔗 URL 보관함")
+        );
+        categoryRepository.saveAll(defaultCategories);
     }
 
     @Transactional(readOnly = true)

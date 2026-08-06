@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional; // ⭐️ 꼭 추가해주세요!
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -56,9 +57,14 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                     .build();
             userRepository.save(user); // 유저 먼저 저장
 
-            // ⭐️ 기본 카테고리 생성 로직
-            Category defaultMusicCategory = new Category(user, "음악");
-            categoryRepository.save(defaultMusicCategory);
+            // =======================================================
+            // ⭐️ 수정됨: 여러 개의 기본 카테고리를 리스트로 묶어서 한 번에 저장!
+            // =======================================================
+            List<Category> defaultCategories = List.of(
+                    new Category(user, "음악"),
+                    new Category(user, "🔗 URL 보관함")
+            );
+            categoryRepository.saveAll(defaultCategories);
         }
 
         // 3. Spring Security 내부에서 사용할 유저 객체 반환
