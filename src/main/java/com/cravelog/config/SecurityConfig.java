@@ -42,6 +42,13 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/**").permitAll() // 이메일 회원가입/로그인 API 누구나 접근 허용
                         .requestMatchers("/api/v1/users/**").permitAll() // 퍼블릭 프로필 검색 및 조회 허용
+
+                        // ⭐️ 1. 추가: 업로드된 사진(정적 리소스)은 누구나 볼 수 있어야 함
+                        .requestMatchers("/uploads/**").permitAll()
+
+                        // ⭐️ 2. 추가: 파일 업로드 API는 무조건 로그인(인증)한 사람만 쓸 수 있게 철벽 방어!
+                        .requestMatchers("/api/v1/files/**").authenticated()
+
                         .requestMatchers("/api/v1/me/**").authenticated() // 내 정보 관리는 로그인 필요
                         .anyRequest().permitAll()
                 )
