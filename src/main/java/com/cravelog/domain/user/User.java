@@ -73,6 +73,10 @@ public class User extends BaseTimeEntity {
     @Column(columnDefinition = "json")
     private Map<String, Boolean> privacySettings; // 예: {"developer": true, "career": true, "idol": false}
 
+    @Type(JsonType.class)
+    @Column(columnDefinition = "json")
+    private List<Map<String, String>> links;
+
     @Builder
     public User(String oauthProvider, String oauthId, String email, String password, String name, String handle) {
         this.oauthProvider = oauthProvider;
@@ -87,7 +91,7 @@ public class User extends BaseTimeEntity {
     public void updateProfile(String name, String profileImageUrl, String role, String major, String location,
                               String bio, String statusMessage, List<String> tags, List<String> goals,
                               Map<String, Object> developerData, Map<String, Object> careerData, Map<String, Object> idolData,
-                              Map<String, Boolean> privacySettings) {
+                              Map<String, Boolean> privacySettings, List<Map<String, String>> links)  {
         this.name = name;
         this.profileImageUrl = profileImageUrl;
         this.role = role;
@@ -101,6 +105,7 @@ public class User extends BaseTimeEntity {
         this.careerData = careerData;
         this.idolData = idolData;
         this.privacySettings = privacySettings;
+        this.links = links; // ⭐️ 추가
     }
 
     // ⭐️ 비밀번호 재설정을 위한 메서드 추가

@@ -31,12 +31,9 @@ public class ProfileDto {
         private Map<String, Object> career;
         private Map<String, Object> idol;
 
-        // ⭐️ 추가: 이 필드가 있어야 .privacy(privacy) 빌더 메서드가 생성됩니다!
         private Map<String, Boolean> privacy;
 
-        // User 엔티티를 DTO로 변환하는 정적 팩토리 메서드
         public static Response from(User user, boolean isOwner) {
-            // NullPointerException을 막기 위해 null일 경우 빈 컬렉션으로 초기화
             Map<String, Boolean> privacy = user.getPrivacySettings();
             if (privacy == null) {
                 privacy = Map.of();
@@ -54,7 +51,7 @@ public class ProfileDto {
                     .oauthProvider(user.getOauthProvider())
                     .tags(user.getTags() != null ? user.getTags() : List.of())
                     .goals(user.getGoals() != null ? user.getGoals() : List.of())
-                    .privacy(privacy) // 이제 이 줄이 정상 작동합니다.
+                    .privacy(privacy)
                     .build();
 
             response.developer = (isOwner || Boolean.TRUE.equals(privacy.get("developer"))) ? user.getDeveloperData() : null;
@@ -67,7 +64,7 @@ public class ProfileDto {
 
     @Getter @Setter
     public static class UpdateRequest {
-        private String handle; // ⭐️ 추가됨
+        private String handle;
         private String name;
         private String profileImageUrl;
         private String role;
@@ -83,16 +80,15 @@ public class ProfileDto {
         private Map<String, Object> career;
         private Map<String, Object> idol;
         private Map<String, Boolean> privacy;
+        private List<Map<String, String>> links;
     }
 
-    // ⭐️ 비밀번호 변경 요청 DTO
     @Getter @Setter
     public static class ChangePasswordRequest {
         private String currentPassword;
         private String newPassword;
     }
 
-    // ⭐️ 계정 탈퇴 요청 DTO
     @Getter @Setter
     public static class DeleteAccountRequest {
         private String password;
