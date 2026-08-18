@@ -33,6 +33,8 @@ public class ProfileDto {
 
         private Map<String, Boolean> privacy;
 
+        private List<Map<String, String>> links;
+
         public static Response from(User user, boolean isOwner) {
             Map<String, Boolean> privacy = user.getPrivacySettings();
             if (privacy == null) {
@@ -51,6 +53,7 @@ public class ProfileDto {
                     .oauthProvider(user.getOauthProvider())
                     .tags(user.getTags() != null ? user.getTags() : List.of())
                     .goals(user.getGoals() != null ? user.getGoals() : List.of())
+                    .links(user.getLinks() != null ? user.getLinks() : List.of())
                     .privacy(privacy)
                     .build();
 
