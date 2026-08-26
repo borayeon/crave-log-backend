@@ -9,7 +9,7 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map; // ⭐️ 추가
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -19,18 +19,21 @@ public class ProfileController {
     private final UserService userService;
 
     /**
-     * 1. 누구나 볼 수 있는 퍼블릭 프로필 조회 (비공개 데이터 필터링됨)
-     * GET /api/v1/users/{handle}/profile
+     * 1. 누구나 볼 수 있는 퍼블릭 프로필 조회 (⭐️ 페르소나 파라미터 적용)
+     * GET /api/v1/users/{handle}/profile?p={personaId}
      */
     @GetMapping("/users/{handle}/profile")
-    public ResponseEntity<ProfileDto.Response> getPublicProfile(@PathVariable String handle) {
-        ProfileDto.Response response = userService.getPublicProfile(handle);
+    public ResponseEntity<ProfileDto.Response> getPublicProfile(
+            @PathVariable String handle,
+            @RequestParam(name = "p", required = false) String personaId // ⭐️ 프론트엔드에서 보낸 파라미터 받기
+    ) {
+        // UserService로 파라미터를 넘깁니다.
+        ProfileDto.Response response = userService.getPublicProfile(handle, personaId);
         return ResponseEntity.ok(response);
     }
 
     /**
-     * 2. 유저 검색 (keyword 파라미터가 없거나 빈칸이면 전체 유저 반환)
-     * GET /api/v1/users/search?keyword=
+     * 2. 유저 검색
      */
     @GetMapping("/users/search")
     public ResponseEntity<List<ProfileDto.Response>> searchUsers(@RequestParam(required = false, defaultValue = "") String keyword) {
@@ -39,8 +42,7 @@ public class ProfileController {
     }
 
     /**
-     * 3. 내 프로필 조회 (마이페이지용 - 비공개 데이터 포함)
-     * GET /api/v1/me/profile
+     * 3. 내 프로필 조회 (마이페이지용)
      */
     @GetMapping("/me/profile")
     public ResponseEntity<ProfileDto.Response> getMyProfile(@AuthenticationPrincipal User principal) {
@@ -51,7 +53,6 @@ public class ProfileController {
 
     /**
      * 4. 내 프로필 수정
-     * PUT /api/v1/me/profile
      */
     @PutMapping("/me/profile")
     public ResponseEntity<Void> updateProfile(@AuthenticationPrincipal User principal, @RequestBody ProfileDto.UpdateRequest request) {
@@ -61,7 +62,7 @@ public class ProfileController {
     }
 
     /**
-     * 5. ⭐️ 비밀번호 변경 API
+     * 5. 비밀번호 변경 API
      */
     @PutMapping("/me/password")
     public ResponseEntity<Void> changePassword(@AuthenticationPrincipal User principal, @RequestBody ProfileDto.ChangePasswordRequest request) {
@@ -71,7 +72,7 @@ public class ProfileController {
     }
 
     /**
-     * 6. ⭐️ 계정 탈퇴 API
+     * 6. 계정 탈퇴 API
      */
     @DeleteMapping("/me")
     public ResponseEntity<Void> deleteAccount(@AuthenticationPrincipal User principal, @RequestBody ProfileDto.DeleteAccountRequest request) {

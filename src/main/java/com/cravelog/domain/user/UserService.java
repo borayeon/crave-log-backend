@@ -26,11 +26,12 @@ public class UserService {
      * 외부 공유용 (게스트) 프로필 조회 기능
      */
     @Transactional(readOnly = true)
-    public ProfileDto.Response getPublicProfile(String handle) {
+    public ProfileDto.Response getPublicProfile(String handle, String personaId) {
         User user = userRepository.findByHandle(handle)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 프로필입니다."));
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        return ProfileDto.Response.from(user, false);
+        // ⭐️ 알아서 필터링된 안전한 Response가 만들어집니다.
+        return ProfileDto.Response.from(user, false, personaId);
     }
 
     /**
