@@ -42,8 +42,8 @@ public class ProfileDto {
             return from(user, isOwner, null);
         }
 
-        // ⭐️ 보안 필터링 완벽 적용
-        public static Response from(User user, boolean isOwner, String personaId) {
+        // ⭐️ 난수 토큰(token) 기반 보안 검증 로직 적용
+        public static Response from(User user, boolean isOwner, String token) {
             Map<String, Boolean> privacy = user.getPrivacySettings();
             if (privacy == null) {
                 privacy = Map.of();
@@ -65,20 +65,18 @@ public class ProfileDto {
                     .privacy(privacy)
                     .build();
 
-            // 1. 원본 훼손을 막기 위한 복사
             response.developer = copyMap(user.getDeveloperData());
             response.career = copyMap(user.getCareerData());
             response.idol = copyMap(user.getIdolData());
 
-            // 2. ⭐️ 백엔드 원천 차단 로직 (본인이 아닐 때만)
             if (!isOwner) {
                 List<String> allowedTabs = null;
 
-                if (personaId != null && !personaId.equals("all")) {
-                    // 특정 페르소나 접근: 해당 페르소나에 묶어둔 탭만 허용 (시크릿 링크 기능)
-                    allowedTabs = getTabsFromPersona(response.idol, personaId);
+                if (token != null && !token.equals("all")) {
+                    // ⭐️ 난수 토큰을 DB(personas)에서 찾아 매칭되는 탭 목록을 가져옴
+                    allowedTabs = getTabsFromToken(response.idol, token);
                 } else {
-                    // 일반 방문: 개별 Privacy 설정이 '공개(true)'인 탭들만 싹 긁어서 허용
+                    // 일반 방문: 공개(true)된 탭만 허용
                     allowedTabs = new ArrayList<>();
                     String[] allTabKeys = {"developer", "career", "addProfile", "businessCard", "qna", "hobby", "vision", "quotes", "memo", "art"};
                     for (String key : allTabKeys) {
@@ -89,7 +87,6 @@ public class ProfileDto {
                 }
 
                 if (allowedTabs != null) {
-                    // ⭐️ 허용되지 않은 데이터는 가차 없이 Null 처리!
                     if (!allowedTabs.contains("developer")) response.developer = null;
                     if (!allowedTabs.contains("career")) response.career = null;
 
@@ -121,7 +118,7 @@ public class ProfileDto {
                         }
                     }
                 } else {
-                    // 유효하지 않은 요청 시 전부 날림
+                    // 유효하지 않거나 만료된 토큰일 경우 모든 민감 데이터 즉시 차단
                     response.developer = null;
                     response.career = null;
                     response.idol = null;
@@ -135,38 +132,42 @@ public class ProfileDto {
             return original == null ? null : new HashMap<>(original);
         }
 
-        // ⭐️ Privacy 값이 false인지 꼼꼼히 확인하는 헬퍼 메서드
         private static boolean isPublic(Map<String, Boolean> privacy, String key) {
-            if (privacy == null || !privacy.containsKey(key)) return true; // 기본은 공개
+            if (privacy == null || !privacy.containsKey(key)) return true;
             Object val = privacy.get(key);
             if (val == null) return true;
             String str = String.valueOf(val);
-            return !str.equalsIgnoreCase("false") && !str.equals("0"); // 명시적으로 비공개일 때만 false
+            return !str.equalsIgnoreCase("false") && !str.equals("0");
         }
 
+        // ⭐️ 토큰을 대조하여 매칭되는 페르소나의 탭을 찾아내는 검증 메서드
         @SuppressWarnings("unchecked")
-        private static List<String> getTabsFromPersona(Map<String, Object> idolData, String personaId) {
+        private static List<String> getTabsFromToken(Map<String, Object> idolData, String token) {
             if (idolData != null && idolData.containsKey("personas")) {
                 try {
                     Map<String, Object> personas = (Map<String, Object>) idolData.get("personas");
-                    if (personas.containsKey(personaId)) {
-                        Map<String, Object> persona = (Map<String, Object>) personas.get(personaId);
-                        return (List<String>) persona.get("tabs");
+                    for (Map.Entry<String, Object> entry : personas.entrySet()) {
+                        Map<String, Object> persona = (Map<String, Object>) entry.getValue();
+                        // 페르소나 객체 안에 저장된 토큰 값과 일치하는지 검사
+                        String personaToken = (String) persona.get("token");
+                        if (token.equals(personaToken)) {
+                            return (List<String>) persona.get("tabs");
+                        }
                     }
                 } catch (Exception e) {}
             }
 
-            switch (personaId) {
+            // 구버전 호환용 (혹시 모를 구형 단어 링크 대비 폴백)
+            switch (token) {
                 case "portfolio": return Arrays.asList("developer", "career", "businessCard");
                 case "social": return Arrays.asList("addProfile", "qna", "hobby", "art", "memo");
                 case "dating": return Arrays.asList("addProfile", "vision", "qna", "hobby");
                 case "fan": return Arrays.asList("hobby", "art", "memo", "quotes", "qna");
-                default: return null;
+                default: return null; // ⭐️ 모르는 토큰이면 원천 차단!
             }
         }
     }
 
-    // ... UpdateRequest, ChangePasswordRequest 등 유지 ...
     @Getter @Setter
     public static class UpdateRequest {
         private String handle;
