@@ -99,6 +99,16 @@ public class RecordService {
     public void createRecord(Long userId, RecordDto.CreateRequest request) {
         User user = userRepository.findById(userId).orElseThrow();
 
+        // Need the Category entity to associate new tags with it.
+        // Assuming you can find the category by name and user ID.
+        // If the category might be new as well (from the frontend's 'newCatName'),
+        // ensure it's saved before trying to use it here.
+        Category category = categoryRepository.findByNameAndUserId(request.getCategoryName(), userId)
+                .orElseGet(() -> {
+                    Category newCat = new Category(user, request.getCategoryName());
+                    return categoryRepository.save(newCat);
+                });
+
         Record record = Record.builder()
                 .user(user)
                 .title(request.getTitle())
@@ -110,13 +120,30 @@ public class RecordService {
                 .isPublic(request.isPublic())
                 .build();
 
-        // 태그 매핑
+        // 1. Link existing tags (tagIds)
         if (request.getTagIds() != null && !request.getTagIds().isEmpty()) {
             List<Tag> tags = tagRepository.findAllById(request.getTagIds());
             tags.forEach(tag -> {
                 RecordTag recordTag = new RecordTag(record, tag);
                 record.getRecordTags().add(recordTag);
             });
+        }
+
+        // 2. Create and link new tags (newTags)
+        if (request.getNewTags() != null && !request.getNewTags().isEmpty()) {
+            for (String newTagName : request.getNewTags()) {
+                // Check if tag already exists in this category
+                Tag tag = tagRepository.findByNameAndCategoryId(newTagName, category.getId())
+                        .orElseGet(() -> {
+                            // Create new tag if it doesn't exist
+                            Tag newTag = new Tag(user, category, newTagName);
+                            return tagRepository.save(newTag);
+                        });
+
+                // Link the tag to the record
+                RecordTag recordTag = new RecordTag(record, tag);
+                record.getRecordTags().add(recordTag);
+            }
         }
 
         recordRepository.save(record);

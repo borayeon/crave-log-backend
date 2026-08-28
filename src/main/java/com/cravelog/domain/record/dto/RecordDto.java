@@ -62,6 +62,9 @@ public class RecordDto {
         private boolean isPublic;
 
         private List<Long> tagIds;
+
+        // Add this field to receive new tag names
+        private List<String> newTags;
     }
 
     // --- 수정용 (Request) ---
