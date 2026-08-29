@@ -1,8 +1,8 @@
-name: CraveLog Backend CI/CD Pipeline
+name: CraveLog Backend Production CI/CD
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main" ] # 🔥 main 브랜치에 푸시될 때만 작동
   pull_request:
     branches: [ "main" ]
 
@@ -21,7 +21,6 @@ jobs:
           distribution: 'temurin'
 
       - name: 3. Grant execute permission and Build
-        # 권한 부여와 빌드를 한 스텝으로 묶어서 깔끔하게 처리했어!
         run: |
           chmod +x gradlew
           ./gradlew clean build -x test
@@ -37,4 +36,5 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/cravelog-backend:latest
+          # 🔥 태그를 latest 대신 prod로 지정 (이전에 만든 docker-compose.yml과 맞춤)
+          tags: ${{ secrets.DOCKER_USERNAME }}/cravelog-backend:prod
