@@ -15,4 +15,4 @@ public class DataInitializer {
             // (추후 시스템에 꼭 필요한 기본 카테고리나 기본 권한 등을 초기화할 때 이 곳을 활용하시면 됩니다.)
         };
     }
-}docker run cloudflare/cloudflared:latest tunnel --no-autoupdate run --token
+}
