@@ -31,7 +31,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     // ⭐️ PasswordEncoder 빈을 PasswordEncoderConfig로 분리했으므로 여기서 삭제합니다.
-    @Value("${cors.allowed-origins}")
+    @Value("#{'${app.auth.allowed-origins}'.split(',')}")
     private List<String> allowedOrigins;
 
     @Bean

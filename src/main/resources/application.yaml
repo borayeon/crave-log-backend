@@ -103,4 +103,4 @@ app:
   auth:
     # ⭐️ 원래대로 복구
     authorized-redirect-uris: ${FRONTEND_URL}
-    allowed-origins: ${FRONTEND_URL}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
