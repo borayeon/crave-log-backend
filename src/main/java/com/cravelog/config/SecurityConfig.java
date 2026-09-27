@@ -83,7 +83,6 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // ⭐️ 하드코딩을 지우고 환경변수에서 가져온 리스트를 통째로 넣습니다!
         configuration.setAllowedOrigins(allowedOrigins);
 
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));

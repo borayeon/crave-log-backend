@@ -18,9 +18,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
     private final JwtTokenProvider tokenProvider;
 
-    // ⭐️ 수정: 기본값 리다이렉트 URI를 /oauth2/redirect 로 다시 변경
     @Value("${app.auth.authorized-redirect-uris}")
-    private String redirectUri;
+    private String redirectUris; // ⭐️ 변수명을 복수형으로 변경하여 인지하기 쉽게 함
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException {
@@ -31,8 +30,11 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         // 2. JWT 토큰 생성
         String token = tokenProvider.createToken(userId);
 
+        // ⭐️ 핵심 수정: 쉼표(,)가 포함되어 있다면 무조건 첫 번째 주소만 추출!
+        String targetUri = redirectUris.split(",")[0].trim();
+
         // 3. 프론트엔드로 리다이렉트 (URL 쿼리 파라미터에 토큰을 실어 보냄)
-        String targetUrl = UriComponentsBuilder.fromUriString(redirectUri)
+        String targetUrl = UriComponentsBuilder.fromUriString(targetUri)
                 .queryParam("token", token)
                 .build().toUriString();
 
