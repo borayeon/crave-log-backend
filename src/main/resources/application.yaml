@@ -9,7 +9,6 @@ spring:
           kakao:
             client-id: ${KAKAO_CLIENT_ID}
             client-secret: ${KAKAO_CLIENT_SECRET}
-            redirect-uri: "https://api.cravelog.me/login/oauth2/code/kakao"
             authorization-grant-type: authorization_code
             client-authentication-method: client_secret_post
             client-name: Kakao
@@ -58,7 +57,12 @@ spring:
   config:
     activate:
       on-profile: local
-
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            redirect-uri: "http://localhost:8080/login/oauth2/code/kakao"
   datasource:
     url: jdbc:mysql://localhost:3306/crave_log?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
     username: root
@@ -87,7 +91,12 @@ spring:
   config:
     activate:
       on-profile: prod
-
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            redirect-uri: "https://api.cravelog.me/login/oauth2/code/kakao"
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
