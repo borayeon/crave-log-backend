@@ -34,7 +34,7 @@ public class ProfileDto {
         private Map<String, Object> career;
         private Map<String, Object> idol;
 
-        private Map<String, Boolean> privacy;
+        private Map<String, Object> privacy;
 
         private List<Map<String, String>> links;
 
@@ -52,7 +52,7 @@ public class ProfileDto {
 
         // ⭐️ 난수 토큰(token) 및 방문자수(todayVisits) 적용
         public static Response from(User user, boolean isOwner, String token, Long todayVisits) {
-            Map<String, Boolean> privacy = user.getPrivacySettings();
+            Map<String, Object> privacy = user.getPrivacySettings();
             if (privacy == null) {
                 privacy = Map.of();
             }
@@ -142,12 +142,13 @@ public class ProfileDto {
             return original == null ? null : new HashMap<>(original);
         }
 
-        private static boolean isPublic(Map<String, Boolean> privacy, String key) {
+        private static boolean isPublic(Map<String, ?> privacy, String key) {
             if (privacy == null || !privacy.containsKey(key)) return true;
             Object val = privacy.get(key);
             if (val == null) return true;
             String str = String.valueOf(val);
-            return !str.equalsIgnoreCase("false") && !str.equals("0");
+            // 4단계 비공개(4) 또는 구버전 false인 경우 제외
+            return !str.equalsIgnoreCase("false") && !str.equals("4");
         }
 
         // ⭐️ 토큰을 대조하여 매칭되는 페르소나의 탭을 찾아내는 검증 메서드
@@ -195,7 +196,7 @@ public class ProfileDto {
         private Map<String, Object> developer;
         private Map<String, Object> career;
         private Map<String, Object> idol;
-        private Map<String, Boolean> privacy;
+        private Map<String, Object> privacy;
         private List<Map<String, String>> links;
     }
 

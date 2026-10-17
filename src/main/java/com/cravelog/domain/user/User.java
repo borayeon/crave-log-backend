@@ -77,10 +77,10 @@ public class User extends BaseTimeEntity {
     @Column(columnDefinition = "json")
     private Map<String, Object> idolData;      // 아이돌 탭 데이터 전체
 
-    // --- 프라이버시(공개/비공개) 설정 (JSON) ---
+    // --- 프라이버시(4단계 공개/비공개) 설정 (JSON) ---
     @Type(JsonType.class)
     @Column(columnDefinition = "json")
-    private Map<String, Boolean> privacySettings; // 예: {"developer": true, "career": true, "idol": false}
+    private Map<String, Object> privacySettings; // 예: {"developer": 0, "career": 1, "qna": 2, "memo": 4}
 
     @Type(JsonType.class)
     @Column(columnDefinition = "json")
@@ -100,7 +100,7 @@ public class User extends BaseTimeEntity {
     public void updateProfile(String name, String profileImageUrl, String role, String major, String location,
                               String bio, String statusMessage, List<String> tags, List<String> goals,
                               Map<String, Object> developerData, Map<String, Object> careerData, Map<String, Object> idolData,
-                              Map<String, Boolean> privacySettings, List<Map<String, String>> links)  {
+                              Map<String, Object> privacySettings, List<Map<String, String>> links)  {
         this.name = name;
         this.profileImageUrl = profileImageUrl;
         this.role = role;
