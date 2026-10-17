@@ -31,7 +31,12 @@ public class User extends BaseTimeEntity {
     private String password;
 
     @Column(unique = true, nullable = false)
-    private String handle;        // 공유 URL용 고유 핸들 (예: taekyeong.dev)  // 공유 URL용 고유 핸들 (예: taekyeong.dev)
+    private String handle;        // 공유 URL용 고유 핸들 (예: taekyeong.dev)
+
+    // ⭐️ 플랫폼 역할 권한 시스템 (ROLE_USER, ROLE_ADMIN)
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserRole userRole = UserRole.ROLE_USER;
 
     // --- 기본 프로필 정보 (검색이나 목록 조회 시 자주 쓰이는 일반 컬럼) ---
     private String name;
@@ -125,5 +130,13 @@ public class User extends BaseTimeEntity {
     // ⭐️ 누적 방문자 수 증가 메서드
     public void incrementTotalVisits() {
         this.totalVisits++;
+    }
+
+    public void promoteToAdmin() {
+        this.userRole = UserRole.ROLE_ADMIN;
+    }
+
+    public boolean isAdmin() {
+        return this.userRole == UserRole.ROLE_ADMIN;
     }
 }
