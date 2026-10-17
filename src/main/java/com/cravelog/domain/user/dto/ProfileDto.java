@@ -38,12 +38,20 @@ public class ProfileDto {
 
         private List<Map<String, String>> links;
 
+        // ⭐️ 방문자 수 카운터 (Today / Total)
+        private Long todayVisits;
+        private Long totalVisits;
+
         public static Response from(User user, boolean isOwner) {
-            return from(user, isOwner, null);
+            return from(user, isOwner, null, 0L);
         }
 
-        // ⭐️ 난수 토큰(token) 기반 보안 검증 로직 적용
         public static Response from(User user, boolean isOwner, String token) {
+            return from(user, isOwner, token, 0L);
+        }
+
+        // ⭐️ 난수 토큰(token) 및 방문자수(todayVisits) 적용
+        public static Response from(User user, boolean isOwner, String token, Long todayVisits) {
             Map<String, Boolean> privacy = user.getPrivacySettings();
             if (privacy == null) {
                 privacy = Map.of();
@@ -63,6 +71,8 @@ public class ProfileDto {
                     .goals(user.getGoals() != null ? user.getGoals() : List.of())
                     .links(user.getLinks() != null ? user.getLinks() : List.of())
                     .privacy(privacy)
+                    .todayVisits(todayVisits != null ? todayVisits : 0L)
+                    .totalVisits(user.getTotalVisits())
                     .build();
 
             response.developer = copyMap(user.getDeveloperData());

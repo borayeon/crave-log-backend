@@ -1,6 +1,7 @@
 package com.cravelog.domain.user;
 
 import com.cravelog.domain.user.dto.ProfileDto;
+import com.cravelog.domain.user.dto.VisitStatDto;
 import com.cravelog.domain.record.RecordRepository;
 import com.cravelog.domain.record.Record;
 import com.cravelog.domain.tag.CategoryRepository;
@@ -21,17 +22,28 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final RecordRepository recordRepository;
     private final CategoryRepository categoryRepository;
+    private final VisitService visitService;
 
     /**
-     * 외부 공유용 (게스트) 프로필 조회 기능
+     * 외부 공유용 (게스트) 프로필 조회 기능 (방문자 수 추적 포함)
      */
-    @Transactional(readOnly = true)
-    public ProfileDto.Response getPublicProfile(String handle, String personaId) {
+    @Transactional
+    public ProfileDto.Response getPublicProfile(String handle, String personaId, String visitorIp, Long authenticatedUserId) {
         User user = userRepository.findByHandle(handle)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        // ⭐️ 알아서 필터링된 안전한 Response가 만들어집니다.
-        return ProfileDto.Response.from(user, false, personaId);
+        // ⭐️ 방문자 수 추적 기록 (중복 방지 & 본인 조회 제외)
+        visitService.recordVisit(user, visitorIp, authenticatedUserId);
+
+        Long todayVisits = visitService.getTodayVisits(user.getId());
+
+        // 알아서 필터링된 안전한 Response가 만들어집니다.
+        return ProfileDto.Response.from(user, false, personaId, todayVisits);
+    }
+
+    @Transactional
+    public ProfileDto.Response getPublicProfile(String handle, String personaId) {
+        return getPublicProfile(handle, personaId, null, null);
     }
 
     /**
@@ -42,7 +54,18 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        return ProfileDto.Response.from(user, true);
+        Long todayVisits = visitService.getTodayVisits(userId);
+        return ProfileDto.Response.from(user, true, null, todayVisits);
+    }
+
+    /**
+     * ⭐️ 방문자 통계 조회 (상세 대시보드용)
+     */
+    @Transactional(readOnly = true)
+    public VisitStatDto.Response getVisitStatsByHandle(String handle) {
+        User user = userRepository.findByHandle(handle)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        return visitService.getVisitStats(user.getId());
     }
 
     /**

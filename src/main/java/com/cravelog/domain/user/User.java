@@ -47,6 +47,10 @@ public class User extends BaseTimeEntity {
     @Column(columnDefinition = "TEXT")
     private String bio;
 
+    // ⭐️ 누적 방문자 수 카운터
+    @Column(nullable = false)
+    private long totalVisits = 0;
+
     // --- 복잡한 프로필 데이터 (JSON 컬럼으로 통째로 저장) ---
     @Type(JsonType.class)
     @Column(columnDefinition = "json")
@@ -116,5 +120,10 @@ public class User extends BaseTimeEntity {
     // ⭐️ 고유 아이디 업데이트 전용 메서드
     public void updateHandle(String handle) {
         this.handle = handle;
+    }
+
+    // ⭐️ 누적 방문자 수 증가 메서드
+    public void incrementTotalVisits() {
+        this.totalVisits++;
     }
 }
