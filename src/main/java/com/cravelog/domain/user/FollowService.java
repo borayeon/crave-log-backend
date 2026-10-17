@@ -22,6 +22,10 @@ public class FollowService {
         User following = userRepository.findByHandle(targetHandle)
                 .orElseThrow(() -> new IllegalArgumentException("대상 사용자를 찾을 수 없습니다."));
 
+        if (following.getUserRole() == UserRole.ROLE_ADMIN) {
+            throw new IllegalArgumentException("대상 사용자를 찾을 수 없습니다.");
+        }
+
         if (follower.getId().equals(following.getId())) {
             throw new IllegalArgumentException("자신을 팔로우할 수 없습니다.");
         }
@@ -36,6 +40,10 @@ public class FollowService {
     public void unfollow(Long followerId, String targetHandle) {
         User following = userRepository.findByHandle(targetHandle)
                 .orElseThrow(() -> new IllegalArgumentException("대상 사용자를 찾을 수 없습니다."));
+
+        if (following.getUserRole() == UserRole.ROLE_ADMIN) {
+            throw new IllegalArgumentException("대상 사용자를 찾을 수 없습니다.");
+        }
 
         followRepository.deleteByFollowerIdAndFollowingId(followerId, following.getId());
     }

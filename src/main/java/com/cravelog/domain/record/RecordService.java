@@ -32,6 +32,9 @@ public class RecordService {
     @Transactional(readOnly = true)
     public List<TagTreeDto.CategoryResponse> getTagTree(String handle) {
         User user = userRepository.findByHandle(handle).orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        if (user.getUserRole() == com.cravelog.domain.user.UserRole.ROLE_ADMIN) {
+            throw new IllegalArgumentException("사용자를 찾을 수 없습니다.");
+        }
         return categoryRepository.findAllByUserId(user.getId()).stream()
                 .map(TagTreeDto.CategoryResponse::from)
                 .collect(Collectors.toList());
@@ -89,6 +92,10 @@ public class RecordService {
     public List<RecordDto.Response> getPublicRecords(String handle, Long currentUserId) {
         User targetUser = userRepository.findByHandle(handle)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+        if (targetUser.getUserRole() == com.cravelog.domain.user.UserRole.ROLE_ADMIN) {
+            throw new IllegalArgumentException("존재하지 않는 사용자입니다.");
+        }
 
         List<Record> records = recordRepository.findAllByUserIdWithTags(targetUser.getId());
         boolean isOwner = currentUserId != null && currentUserId.equals(targetUser.getId());

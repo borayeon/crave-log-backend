@@ -16,21 +16,30 @@ public class DataInitializer {
     @Bean
     public CommandLineRunner initData(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         return args -> {
-            // ⭐️ 시스템 최고 관리자(Admin) 전용 독립 계정 생성 (실사용 계정과 엄격 분리)
-            if (userRepository.findByHandle("admin_craver").isEmpty()) {
-                User admin = User.builder()
-                        .name("CraveLog 최고관리자")
-                        .handle("admin_craver")
-                        .email("admin@cravelog.local")
-                        .password(passwordEncoder.encode("craver_admin_secret_2026!"))
-                        .oauthProvider("LOCAL")
-                        .oauthId("admin_craver")
-                        .build();
+            // ⭐️ 시스템 최고 관리자(Admin) 전용 독립 계정 생성 및 권한 검증 (실사용 계정과 엄격 분리)
+            userRepository.findByHandle("admin_craver").ifPresentOrElse(
+                admin -> {
+                    if (!admin.isAdmin()) {
+                        admin.promoteToAdmin();
+                        userRepository.save(admin);
+                        log.info("🛡️ 기존 admin_craver 계정에 ROLE_ADMIN 권한을 성공적으로 갱신했습니다.");
+                    }
+                },
+                () -> {
+                    User admin = User.builder()
+                            .name("CraveLog 최고관리자")
+                            .handle("admin_craver")
+                            .email("admin@cravelog.local")
+                            .password(passwordEncoder.encode("craver_admin_secret_2026!"))
+                            .oauthProvider("LOCAL")
+                            .oauthId("admin_craver")
+                            .build();
 
-                admin.promoteToAdmin(); // ROLE_ADMIN 부여
-                userRepository.save(admin);
-                log.info("🛡️ 시스템 최고 관리자 계정(admin_craver / ROLE_ADMIN)이 성공적으로 초기화되었습니다.");
-            }
+                    admin.promoteToAdmin(); // ROLE_ADMIN 부여
+                    userRepository.save(admin);
+                    log.info("🛡️ 시스템 최고 관리자 계정(admin_craver / ROLE_ADMIN)이 성공적으로 초기화되었습니다.");
+                }
+            );
         };
     }
 }

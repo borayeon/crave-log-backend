@@ -32,6 +32,11 @@ public class UserService {
         User user = userRepository.findByHandle(handle)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
+        // ⭐️ 관리자(ROLE_ADMIN) 계정은 퍼블릭 프로필 조회 불가 (존재 여부 은닉)
+        if (user.getUserRole() == UserRole.ROLE_ADMIN) {
+            throw new IllegalArgumentException("User not found");
+        }
+
         // ⭐️ 방문자 수 추적 기록 (중복 방지 & 본인 조회 제외)
         visitService.recordVisit(user, visitorIp, authenticatedUserId);
 
@@ -104,15 +109,16 @@ public class UserService {
     public List<ProfileDto.Response> searchUsers(String keyword) {
         List<User> users;
 
-        // 검색어가 없으면 전체를 가져오도록 처리
+        // 검색어가 없으면 일반 유저(ROLE_USER) 목록만 조회 (관리자 계정 원천 제외)
         if (keyword == null || keyword.trim().isEmpty()) {
-            users = userRepository.findAll();
+            users = userRepository.findByUserRole(UserRole.ROLE_USER);
         } else {
-            // ⭐️ 기존에 구현해둔 안전한 커스텀 쿼리 메서드 호출 (MySQL 특수문자 이스케이프 버그 방어)
+            // ⭐️ ROLE_ADMIN을 제외하는 커스텀 쿼리 호출
             users = userRepository.searchUsers(keyword);
         }
 
         return users.stream()
+                .filter(user -> user.getUserRole() != UserRole.ROLE_ADMIN) // 이중 방어 필터링
                 .map(user -> ProfileDto.Response.from(user, false)) // 퍼블릭 프로필 정보로 변환하여 반환
                 .collect(Collectors.toList());
     }
