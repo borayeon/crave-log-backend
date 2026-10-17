@@ -136,6 +136,10 @@ public class User extends BaseTimeEntity {
         this.userRole = UserRole.ROLE_ADMIN;
     }
 
+    public void demoteToUser() {
+        this.userRole = UserRole.ROLE_USER;
+    }
+
     public boolean isAdmin() {
         return this.userRole == UserRole.ROLE_ADMIN;
     }

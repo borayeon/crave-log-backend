@@ -40,6 +40,15 @@ public class DataInitializer {
                     log.info("🛡️ 시스템 최고 관리자 계정(admin_craver / ROLE_ADMIN)이 성공적으로 초기화되었습니다.");
                 }
             );
+
+            // ⭐️ 실사용 계정(taeya00)이 관리자로 잘못 설정되어 있지 않도록 ROLE_USER 권한 보장
+            userRepository.findByHandle("taeya00").ifPresent(user -> {
+                if (user.isAdmin()) {
+                    user.demoteToUser();
+                    userRepository.save(user);
+                    log.info("👤 실사용 계정(taeya00)의 권한을 일반 유저(ROLE_USER)로 정상 설정했습니다.");
+                }
+            });
         };
     }
 }
