@@ -379,7 +379,7 @@ public class PlatformAnalyticsService {
     }
 
     public static String formatPathName(String path) {
-        if (path == null || path.isBlank() || "/".equals(path)) return "홈 / 메인";
+        if (path == null || path.isBlank() || "/".equals(path) || path.contains("landing")) return "랜딩 페이지 (Landing)";
         if (path.contains("profile")) return "프로필 뷰 (Profile)";
         if (path.contains("timeline")) return "타임라인 뷰 (Timeline)";
         if (path.contains("archive")) return "아카이브 뷰 (Archive)";
