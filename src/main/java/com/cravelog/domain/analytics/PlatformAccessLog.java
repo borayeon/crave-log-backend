@@ -38,17 +38,29 @@ public class PlatformAccessLog {
     @Column(name = "referer", length = 255)
     private String referer;
 
+    @Column(name = "duration_seconds")
+    private Integer durationSeconds;
+
+    @Column(name = "event_type", length = 30)
+    private String eventType;
+
+    @Column(name = "event_detail", length = 255)
+    private String eventDetail;
+
     @Column(name = "accessed_at", nullable = false)
     private LocalDateTime accessedAt;
 
     @Builder
-    public PlatformAccessLog(String ipMasked, String path, String deviceType, String browser, String os, String referer, LocalDateTime accessedAt) {
+    public PlatformAccessLog(String ipMasked, String path, String deviceType, String browser, String os, String referer, Integer durationSeconds, String eventType, String eventDetail, LocalDateTime accessedAt) {
         this.ipMasked = ipMasked;
         this.path = path;
         this.deviceType = deviceType;
         this.browser = browser;
         this.os = os;
         this.referer = referer;
+        this.durationSeconds = durationSeconds != null ? durationSeconds : 0;
+        this.eventType = eventType != null ? eventType : "PAGE_VIEW";
+        this.eventDetail = eventDetail;
         this.accessedAt = accessedAt != null ? accessedAt : LocalDateTime.now();
     }
 }

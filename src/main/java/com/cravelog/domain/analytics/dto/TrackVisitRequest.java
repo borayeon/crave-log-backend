@@ -10,4 +10,7 @@ import lombok.Setter;
 public class TrackVisitRequest {
     private String path;
     private String referer;
+    private Integer durationSeconds;
+    private String eventType;
+    private String eventDetail;
 }

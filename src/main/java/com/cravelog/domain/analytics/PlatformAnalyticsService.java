@@ -37,6 +37,11 @@ public class PlatformAnalyticsService {
      */
     @Transactional
     public void recordPlatformVisit(String ip, String userAgent, String path, String referer) {
+        recordPlatformVisit(ip, userAgent, path, referer, null, "PAGE_VIEW", null);
+    }
+
+    @Transactional
+    public void recordPlatformVisit(String ip, String userAgent, String path, String referer, Integer durationSeconds, String eventType, String eventDetail) {
         LocalDate today = LocalDate.now();
         String clientIp = (ip != null && !ip.isBlank()) ? ip : "unknown";
         String cleanPath = (path != null && !path.isBlank()) ? path : "/";
@@ -46,6 +51,8 @@ public class PlatformAnalyticsService {
         String browser = detectBrowser(userAgent);
         String os = detectOs(userAgent);
         String maskedIp = maskIp(clientIp);
+
+        String type = (eventType != null && !eventType.isBlank()) ? eventType : "PAGE_VIEW";
 
         boolean isNewUv = true;
 
@@ -67,8 +74,10 @@ public class PlatformAnalyticsService {
         if (isNewUv) {
             stat.incrementUniqueVisitor();
         }
-        stat.incrementPageView();
-        stat.incrementDevice(deviceType);
+        if ("PAGE_VIEW".equalsIgnoreCase(type)) {
+            stat.incrementPageView();
+            stat.incrementDevice(deviceType);
+        }
         dailyStatRepository.save(stat);
 
         // 2. 최근 접속 로그 저장
@@ -80,6 +89,9 @@ public class PlatformAnalyticsService {
                     .browser(browser)
                     .os(os)
                     .referer(referer != null && referer.length() > 255 ? referer.substring(0, 255) : referer)
+                    .durationSeconds(durationSeconds)
+                    .eventType(type)
+                    .eventDetail(eventDetail != null && eventDetail.length() > 255 ? eventDetail.substring(0, 255) : eventDetail)
                     .accessedAt(LocalDateTime.now())
                     .build();
             accessLogRepository.save(accessLog);
@@ -196,7 +208,54 @@ public class PlatformAnalyticsService {
                 })
                 .collect(Collectors.toList());
 
-        // 8. 최근 실시간 접속 로그 (최근 30개)
+        // 8. 유입 경로 (Referrer / Traffic Source) 분석 (상위 5개)
+        List<Object[]> rawReferrers = accessLogRepository.findTopReferrers(PageRequest.of(0, 30));
+        Map<String, Long> aggregatedReferrers = new LinkedHashMap<>();
+        for (Object[] row : rawReferrers) {
+            String rawRef = (String) row[0];
+            String displayRef = classifyReferrer(rawRef);
+            long count = (Long) row[1];
+            aggregatedReferrers.put(displayRef, aggregatedReferrers.getOrDefault(displayRef, 0L) + count);
+        }
+        long refTotal = aggregatedReferrers.values().stream().mapToLong(Long::longValue).sum();
+        List<NameValueDto> topReferrers = aggregatedReferrers.entrySet().stream()
+                .sorted((a, b) -> Long.compare(b.getValue(), a.getValue()))
+                .limit(5)
+                .map(e -> {
+                    double pct = refTotal > 0 ? Math.round((double) e.getValue() / refTotal * 1000.0) / 10.0 : 0.0;
+                    return new NameValueDto(e.getKey(), e.getValue(), pct);
+                })
+                .collect(Collectors.toList());
+
+        // 9. 최다 검색 키워드 (상위 5개)
+        List<Object[]> rawSearch = accessLogRepository.findTopSearchKeywords(PageRequest.of(0, 5));
+        long searchTotal = rawSearch.stream().mapToLong(r -> (Long) r[1]).sum();
+        List<NameValueDto> topSearchKeywords = rawSearch.stream()
+                .map(row -> {
+                    String keyword = (String) row[0];
+                    long count = (Long) row[1];
+                    double pct = searchTotal > 0 ? Math.round((double) count / searchTotal * 1000.0) / 10.0 : 0.0;
+                    return new NameValueDto(keyword, count, pct);
+                })
+                .collect(Collectors.toList());
+
+        // 10. 최다 클릭 외부 링크 (상위 5개)
+        List<Object[]> rawClicks = accessLogRepository.findTopOutboundClicks(PageRequest.of(0, 5));
+        long clicksTotal = rawClicks.stream().mapToLong(r -> (Long) r[1]).sum();
+        List<NameValueDto> topOutboundClicks = rawClicks.stream()
+                .map(row -> {
+                    String link = (String) row[0];
+                    long count = (Long) row[1];
+                    double pct = clicksTotal > 0 ? Math.round((double) count / clicksTotal * 1000.0) / 10.0 : 0.0;
+                    return new NameValueDto(link, count, pct);
+                })
+                .collect(Collectors.toList());
+
+        // 11. 평균 화면 체류 시간 (초 단위)
+        Double avgDuration = accessLogRepository.findAverageDurationSeconds();
+        double averageDurationSeconds = avgDuration != null ? Math.round(avgDuration * 10.0) / 10.0 : 0.0;
+
+        // 12. 최근 실시간 접속 로그 (최근 30개)
         List<PlatformAccessLog> recentLogsList = accessLogRepository.findTop30ByOrderByAccessedAtDesc();
         List<AccessLogDto> recentLogs = recentLogsList.stream()
                 .map(logItem -> AccessLogDto.builder()
@@ -225,11 +284,51 @@ public class PlatformAnalyticsService {
                 .topBrowsers(topBrowsers)
                 .topOs(topOs)
                 .topPaths(topPaths)
+                .topReferrers(topReferrers)
+                .topSearchKeywords(topSearchKeywords)
+                .topOutboundClicks(topOutboundClicks)
+                .averageDurationSeconds(averageDurationSeconds)
                 .recentLogs(recentLogs)
                 .build();
     }
 
+    /**
+     * ⭐️ 매일 새벽 3시: 90일 지난 오래된 상세 접속 로그 자동 정리 (DB 용량 무한 증가 방지)
+     * (일별 집계 테이블 PlatformDailyStat은 영구 보존되므로 통계 그래프는 손실되지 않음)
+     */
+    @org.springframework.scheduling.annotation.Scheduled(cron = "0 0 3 * * *")
+    @Transactional
+    public void cleanupOldAccessLogs() {
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(90);
+        try {
+            accessLogRepository.deleteByAccessedAtBefore(cutoff);
+            log.info("🧹 [스케줄러] 90일 지난 오래된 상세 플랫폼 접속 로그 정리 완료 (기준: {})", cutoff);
+        } catch (Exception e) {
+            log.error("오래된 접속 로그 정리 중 오류 발생: {}", e.getMessage());
+        }
+    }
+
     // --- 유틸리티 메서드 ---
+
+    public static String classifyReferrer(String ref) {
+        if (ref == null || ref.isBlank()) return "직접 방문 (Direct / Bookmark)";
+        String lower = ref.toLowerCase();
+        if (lower.contains("naver.com")) return "네이버 (Naver)";
+        if (lower.contains("google.com") || lower.contains("google.co.kr")) return "구글 (Google)";
+        if (lower.contains("kakao.com") || lower.contains("kakaotalk")) return "카카오톡 (Kakao)";
+        if (lower.contains("instagram.com")) return "인스타그램 (Instagram)";
+        if (lower.contains("facebook.com")) return "페이스북 (Facebook)";
+        if (lower.contains("youtube.com") || lower.contains("youtu.be")) return "유튜브 (YouTube)";
+        if (lower.contains("twitter.com") || lower.contains("t.co") || lower.contains("x.com")) return "X / Twitter";
+        if (lower.contains("cravelog.me") || lower.contains("localhost")) return "내부 이동 (Internal)";
+        try {
+            java.net.URI uri = java.net.URI.create(ref);
+            String host = uri.getHost();
+            return host != null ? host : "기타 웹사이트";
+        } catch (Exception e) {
+            return "기타 웹사이트";
+        }
+    }
 
     public static String maskIp(String ip) {
         if (ip == null || ip.isBlank() || "unknown".equalsIgnoreCase(ip)) return "unknown";

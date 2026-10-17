@@ -26,5 +26,9 @@ public class PlatformOverviewDto {
     private List<NameValueDto> topBrowsers;
     private List<NameValueDto> topOs;
     private List<NameValueDto> topPaths;
+    private List<NameValueDto> topReferrers;
+    private List<NameValueDto> topSearchKeywords;
+    private List<NameValueDto> topOutboundClicks;
+    private double averageDurationSeconds;
     private List<AccessLogDto> recentLogs;
 }

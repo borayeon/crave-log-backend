@@ -34,8 +34,11 @@ public class PlatformAnalyticsController {
         String userAgent = httpRequest.getHeader("User-Agent");
         String path = (request != null && request.getPath() != null) ? request.getPath() : "/";
         String referer = (request != null && request.getReferer() != null) ? request.getReferer() : httpRequest.getHeader("Referer");
+        Integer duration = (request != null) ? request.getDurationSeconds() : null;
+        String eventType = (request != null && request.getEventType() != null) ? request.getEventType() : "PAGE_VIEW";
+        String eventDetail = (request != null) ? request.getEventDetail() : null;
 
-        platformAnalyticsService.recordPlatformVisit(clientIp, userAgent, path, referer);
+        platformAnalyticsService.recordPlatformVisit(clientIp, userAgent, path, referer, duration, eventType, eventDetail);
         return ResponseEntity.ok().build();
     }
 
