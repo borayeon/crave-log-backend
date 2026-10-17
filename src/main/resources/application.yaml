@@ -112,4 +112,4 @@ app:
   auth:
     # ⭐️ 원래대로 복구
     authorized-redirect-uris: ${FRONTEND_URL}
-    allowed-origins: ${CORS_ALLOWED_ORIGINS}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173,https://cravelog.me}
