@@ -177,16 +177,22 @@ public class PlatformAnalyticsService {
                 })
                 .collect(Collectors.toList());
 
-        // 7. 인기 페이지 경로 (상위 5개)
-        List<Object[]> rawPaths = accessLogRepository.findTopPaths(PageRequest.of(0, 5));
-        long pathTotal = rawPaths.stream().mapToLong(row -> (Long) row[1]).sum();
-        List<NameValueDto> topPaths = rawPaths.stream()
-                .map(row -> {
-                    String rawPath = (String) row[0];
-                    String displayName = formatPathName(rawPath);
-                    long count = (Long) row[1];
-                    double pct = pathTotal > 0 ? Math.round((double) count / pathTotal * 1000.0) / 10.0 : 0.0;
-                    return new NameValueDto(displayName, count, pct);
+        // 7. 인기 페이지 경로 (상위 5개, 표시 이름 기준으로 합산 집계)
+        List<Object[]> rawPaths = accessLogRepository.findTopPaths(PageRequest.of(0, 20));
+        Map<String, Long> aggregatedPaths = new LinkedHashMap<>();
+        for (Object[] row : rawPaths) {
+            String rawPath = (String) row[0];
+            String displayName = formatPathName(rawPath);
+            long count = (Long) row[1];
+            aggregatedPaths.put(displayName, aggregatedPaths.getOrDefault(displayName, 0L) + count);
+        }
+        long pathTotal = aggregatedPaths.values().stream().mapToLong(Long::longValue).sum();
+        List<NameValueDto> topPaths = aggregatedPaths.entrySet().stream()
+                .sorted((a, b) -> Long.compare(b.getValue(), a.getValue()))
+                .limit(5)
+                .map(e -> {
+                    double pct = pathTotal > 0 ? Math.round((double) e.getValue() / pathTotal * 1000.0) / 10.0 : 0.0;
+                    return new NameValueDto(e.getKey(), e.getValue(), pct);
                 })
                 .collect(Collectors.toList());
 
