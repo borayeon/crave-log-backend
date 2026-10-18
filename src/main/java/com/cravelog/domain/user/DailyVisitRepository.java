@@ -14,4 +14,8 @@ public interface DailyVisitRepository extends JpaRepository<DailyVisit, Long> {
 
     @Query("SELECT d FROM DailyVisit d WHERE d.user.id = :userId AND d.visitDate >= :startDate ORDER BY d.visitDate ASC")
     List<DailyVisit> findRecentVisits(@Param("userId") Long userId, @Param("startDate") LocalDate startDate);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("DELETE FROM DailyVisit d WHERE d.user.id = :userId")
+    void deleteAllByUserId(@Param("userId") Long userId);
 }

@@ -23,6 +23,8 @@ public class UserService {
     private final RecordRepository recordRepository;
     private final CategoryRepository categoryRepository;
     private final VisitService visitService;
+    private final FollowRepository followRepository;
+    private final DailyVisitRepository dailyVisitRepository;
 
     /**
      * 외부 공유용 (게스트) 프로필 조회 기능 (방문자 수 추적 포함)
@@ -153,20 +155,26 @@ public class UserService {
 
         // ⭐️ 소셜 연동 계정이 아닐 때(이메일 가입자일 때)만 비밀번호 검증
         if (user.getOauthProvider() == null) {
-            if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            if (request == null || request.getPassword() == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
                 throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
             }
         }
 
-        // 1. 유저가 작성한 모든 기록 지우기
+        // 1. 유저의 모든 팔로우 관계 삭제 (팔로워 및 팔로잉 외래키 무결성 보장)
+        followRepository.deleteAllByUserId(userId);
+
+        // 2. 유저의 일별 방문자 통계 기록 삭제
+        dailyVisitRepository.deleteAllByUserId(userId);
+
+        // 3. 유저가 작성한 모든 기록 지우기 (RecordTag는 CascadeType.ALL에 의해 연쇄 삭제)
         List<Record> records = recordRepository.findAllByUserIdWithTags(userId);
         recordRepository.deleteAll(records);
 
-        // 2. 유저가 작성한 모든 카테고리(및 하위 태그들) 지우기
+        // 4. 유저가 작성한 모든 카테고리(및 하위 태그들) 지우기 (Tag는 CascadeType.ALL에 의해 연쇄 삭제)
         List<Category> categories = categoryRepository.findAllByUserId(userId);
         categoryRepository.deleteAll(categories);
 
-        // 3. 마지막으로 유저 본인 지우기
+        // 5. 마지막으로 유저 본인 지우기
         userRepository.delete(user);
     }
 }

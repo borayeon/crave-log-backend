@@ -109,7 +109,9 @@ public class ProfileController {
      * 6. 계정 탈퇴 API
      */
     @DeleteMapping("/me")
-    public ResponseEntity<Void> deleteAccount(@AuthenticationPrincipal User principal, @RequestBody ProfileDto.DeleteAccountRequest request) {
+    public ResponseEntity<Void> deleteAccount(
+            @AuthenticationPrincipal User principal, 
+            @RequestBody(required = false) ProfileDto.DeleteAccountRequest request) {
         Long myUserId = Long.parseLong(principal.getUsername());
         userService.deleteAccount(myUserId, request);
         return ResponseEntity.ok().build();
