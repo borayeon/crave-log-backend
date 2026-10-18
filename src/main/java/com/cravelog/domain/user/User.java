@@ -31,7 +31,12 @@ public class User extends BaseTimeEntity {
     private String password;
 
     @Column(unique = true, nullable = false)
-    private String handle;        // 공유 URL용 고유 핸들 (예: taekyeong.dev)  // 공유 URL용 고유 핸들 (예: taekyeong.dev)
+    private String handle;        // 공유 URL용 고유 핸들 (예: taekyeong.dev)
+
+    // ⭐️ 플랫폼 역할 권한 시스템 (ROLE_USER, ROLE_ADMIN)
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserRole userRole = UserRole.ROLE_USER;
 
     // --- 기본 프로필 정보 (검색이나 목록 조회 시 자주 쓰이는 일반 컬럼) ---
     private String name;
@@ -46,6 +51,10 @@ public class User extends BaseTimeEntity {
 
     @Column(columnDefinition = "TEXT")
     private String bio;
+
+    // ⭐️ 누적 방문자 수 카운터
+    @Column(nullable = false)
+    private long totalVisits = 0;
 
     // --- 복잡한 프로필 데이터 (JSON 컬럼으로 통째로 저장) ---
     @Type(JsonType.class)
@@ -68,10 +77,10 @@ public class User extends BaseTimeEntity {
     @Column(columnDefinition = "json")
     private Map<String, Object> idolData;      // 아이돌 탭 데이터 전체
 
-    // --- 프라이버시(공개/비공개) 설정 (JSON) ---
+    // --- 프라이버시(4단계 공개/비공개) 설정 (JSON) ---
     @Type(JsonType.class)
     @Column(columnDefinition = "json")
-    private Map<String, Boolean> privacySettings; // 예: {"developer": true, "career": true, "idol": false}
+    private Map<String, Object> privacySettings; // 예: {"developer": 0, "career": 1, "qna": 2, "memo": 4}
 
     @Type(JsonType.class)
     @Column(columnDefinition = "json")
@@ -91,7 +100,7 @@ public class User extends BaseTimeEntity {
     public void updateProfile(String name, String profileImageUrl, String role, String major, String location,
                               String bio, String statusMessage, List<String> tags, List<String> goals,
                               Map<String, Object> developerData, Map<String, Object> careerData, Map<String, Object> idolData,
-                              Map<String, Boolean> privacySettings, List<Map<String, String>> links)  {
+                              Map<String, Object> privacySettings, List<Map<String, String>> links)  {
         this.name = name;
         this.profileImageUrl = profileImageUrl;
         this.role = role;
@@ -116,5 +125,22 @@ public class User extends BaseTimeEntity {
     // ⭐️ 고유 아이디 업데이트 전용 메서드
     public void updateHandle(String handle) {
         this.handle = handle;
+    }
+
+    // ⭐️ 누적 방문자 수 증가 메서드
+    public void incrementTotalVisits() {
+        this.totalVisits++;
+    }
+
+    public void promoteToAdmin() {
+        this.userRole = UserRole.ROLE_ADMIN;
+    }
+
+    public void demoteToUser() {
+        this.userRole = UserRole.ROLE_USER;
+    }
+
+    public boolean isAdmin() {
+        return this.userRole == UserRole.ROLE_ADMIN;
     }
 }

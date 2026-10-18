@@ -38,11 +38,14 @@ public class RecordController {
     }
 
     /**
-     * ⭐️ 2. 특정 유저의 퍼블릭 기록 목록 조회 (게스트용 - 누락되었던 코드 복구!)
+     * ⭐️ 2. 특정 유저의 기록 목록 조회 (4단계 접근 보안 필터링 적용)
      */
     @GetMapping("/users/{handle}/records")
-    public ResponseEntity<List<RecordDto.Response>> getPublicRecords(@PathVariable String handle) {
-        List<RecordDto.Response> response = recordService.getPublicRecords(handle);
+    public ResponseEntity<List<RecordDto.Response>> getPublicRecords(
+            @AuthenticationPrincipal User principal,
+            @PathVariable String handle) {
+        Long currentUserId = principal != null ? Long.parseLong(principal.getUsername()) : null;
+        List<RecordDto.Response> response = recordService.getPublicRecords(handle, currentUserId);
         return ResponseEntity.ok(response);
     }
 
@@ -74,6 +77,30 @@ public class RecordController {
         Long myUserId = Long.parseLong(principal.getUsername());
         recordService.updateRecord(myUserId, recordId, request);
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * ⭐️ 4-2. 기록 공개 권한 단독 변경 (0단계 전체, 1단계 팔로워, 2단계 비밀, 4단계 비공개)
+     */
+    @PatchMapping("/me/records/{recordId}/visibility")
+    public ResponseEntity<Void> updateVisibility(
+            @AuthenticationPrincipal User principal,
+            @PathVariable Long recordId,
+            @RequestBody RecordDto.UpdateVisibilityRequest request) {
+        Long myUserId = Long.parseLong(principal.getUsername());
+        recordService.updateVisibility(myUserId, recordId, request.getVisibilityLevel(), request.getPasscode());
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * ⭐️ 4-3. 2단계 비밀 공개 기록의 패스코드 검증 및 잠금 해제
+     */
+    @PostMapping("/records/{recordId}/verify-passcode")
+    public ResponseEntity<RecordDto.Response> verifyPasscode(
+            @PathVariable Long recordId,
+            @RequestBody RecordDto.VerifyPasscodeRequest request) {
+        RecordDto.Response response = recordService.verifyPasscode(recordId, request.getPasscode());
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -124,5 +151,10 @@ public class RecordController {
         Long myUserId = Long.parseLong(principal.getUsername());
         recordService.deleteTag(myUserId, tagId);
         return ResponseEntity.ok().build();
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<String> handleIllegalArgument(IllegalArgumentException e) {
+        return ResponseEntity.badRequest().body(e.getMessage());
     }
 }

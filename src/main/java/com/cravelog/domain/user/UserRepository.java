@@ -20,7 +20,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // ⭐️ 아이디/비밀번호 찾기용 메서드 추가
     Optional<User> findByEmailAndName(String email, String name);
 
-    // ⭐️ MySQL 특수문자 이스케이프 버그를 피하기 위해 직접 쿼리 작성
-    @Query("SELECT u FROM User u WHERE LOWER(u.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(u.handle) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    // ⭐️ 관리자(ROLE_ADMIN) 계정은 퍼블릭 검색에서 절대 노출되지 않도록 제외 (MySQL 특수문자 이스케이프 버그 방어)
+    @Query("SELECT u FROM User u WHERE u.userRole != com.cravelog.domain.user.UserRole.ROLE_ADMIN AND (LOWER(u.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(u.handle) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     List<User> searchUsers(@Param("keyword") String keyword);
+
+    // ⭐️ 일반 회원 목록 조회 (관리자 제외)
+    List<User> findByUserRole(UserRole userRole);
 }

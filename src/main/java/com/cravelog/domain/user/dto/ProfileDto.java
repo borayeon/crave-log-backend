@@ -34,17 +34,25 @@ public class ProfileDto {
         private Map<String, Object> career;
         private Map<String, Object> idol;
 
-        private Map<String, Boolean> privacy;
+        private Map<String, Object> privacy;
 
         private List<Map<String, String>> links;
 
+        // ⭐️ 방문자 수 카운터 (Today / Total)
+        private Long todayVisits;
+        private Long totalVisits;
+
         public static Response from(User user, boolean isOwner) {
-            return from(user, isOwner, null);
+            return from(user, isOwner, null, 0L);
         }
 
-        // ⭐️ 난수 토큰(token) 기반 보안 검증 로직 적용
         public static Response from(User user, boolean isOwner, String token) {
-            Map<String, Boolean> privacy = user.getPrivacySettings();
+            return from(user, isOwner, token, 0L);
+        }
+
+        // ⭐️ 난수 토큰(token) 및 방문자수(todayVisits) 적용
+        public static Response from(User user, boolean isOwner, String token, Long todayVisits) {
+            Map<String, Object> privacy = user.getPrivacySettings();
             if (privacy == null) {
                 privacy = Map.of();
             }
@@ -63,6 +71,8 @@ public class ProfileDto {
                     .goals(user.getGoals() != null ? user.getGoals() : List.of())
                     .links(user.getLinks() != null ? user.getLinks() : List.of())
                     .privacy(privacy)
+                    .todayVisits(todayVisits != null ? todayVisits : 0L)
+                    .totalVisits(user.getTotalVisits())
                     .build();
 
             response.developer = copyMap(user.getDeveloperData());
@@ -132,12 +142,13 @@ public class ProfileDto {
             return original == null ? null : new HashMap<>(original);
         }
 
-        private static boolean isPublic(Map<String, Boolean> privacy, String key) {
+        private static boolean isPublic(Map<String, ?> privacy, String key) {
             if (privacy == null || !privacy.containsKey(key)) return true;
             Object val = privacy.get(key);
             if (val == null) return true;
             String str = String.valueOf(val);
-            return !str.equalsIgnoreCase("false") && !str.equals("0");
+            // 4단계 비공개(4) 또는 구버전 false인 경우 제외
+            return !str.equalsIgnoreCase("false") && !str.equals("4");
         }
 
         // ⭐️ 토큰을 대조하여 매칭되는 페르소나의 탭을 찾아내는 검증 메서드
@@ -148,6 +159,11 @@ public class ProfileDto {
                     Map<String, Object> personas = (Map<String, Object>) idolData.get("personas");
                     for (Map.Entry<String, Object> entry : personas.entrySet()) {
                         Map<String, Object> persona = (Map<String, Object>) entry.getValue();
+                        // ⭐️ 비활성화된 페르소나는 토큰 접근 차단
+                        Object isActive = persona.get("isActive");
+                        if (isActive != null && (isActive.equals(false) || "false".equalsIgnoreCase(String.valueOf(isActive)))) {
+                            continue;
+                        }
                         // 페르소나 객체 안에 저장된 토큰 값과 일치하는지 검사
                         String personaToken = (String) persona.get("token");
                         if (token.equals(personaToken)) {
@@ -185,7 +201,7 @@ public class ProfileDto {
         private Map<String, Object> developer;
         private Map<String, Object> career;
         private Map<String, Object> idol;
-        private Map<String, Boolean> privacy;
+        private Map<String, Object> privacy;
         private List<Map<String, String>> links;
     }
 

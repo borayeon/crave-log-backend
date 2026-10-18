@@ -1,6 +1,7 @@
 package com.cravelog.domain.user;
 
 import com.cravelog.domain.user.dto.ProfileDto;
+import com.cravelog.domain.user.dto.VisitStatDto;
 import com.cravelog.domain.record.RecordRepository;
 import com.cravelog.domain.record.Record;
 import com.cravelog.domain.tag.CategoryRepository;
@@ -21,17 +22,35 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final RecordRepository recordRepository;
     private final CategoryRepository categoryRepository;
+    private final VisitService visitService;
+    private final FollowRepository followRepository;
+    private final DailyVisitRepository dailyVisitRepository;
 
     /**
-     * 외부 공유용 (게스트) 프로필 조회 기능
+     * 외부 공유용 (게스트) 프로필 조회 기능 (방문자 수 추적 포함)
      */
-    @Transactional(readOnly = true)
-    public ProfileDto.Response getPublicProfile(String handle, String personaId) {
+    @Transactional
+    public ProfileDto.Response getPublicProfile(String handle, String personaId, String visitorIp, Long authenticatedUserId) {
         User user = userRepository.findByHandle(handle)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        // ⭐️ 알아서 필터링된 안전한 Response가 만들어집니다.
-        return ProfileDto.Response.from(user, false, personaId);
+        // ⭐️ 관리자(ROLE_ADMIN) 계정은 퍼블릭 프로필 조회 불가 (존재 여부 은닉)
+        if (user.getUserRole() == UserRole.ROLE_ADMIN) {
+            throw new IllegalArgumentException("User not found");
+        }
+
+        // ⭐️ 방문자 수 추적 기록 (중복 방지 & 본인 조회 제외)
+        visitService.recordVisit(user, visitorIp, authenticatedUserId);
+
+        Long todayVisits = visitService.getTodayVisits(user.getId());
+
+        // 알아서 필터링된 안전한 Response가 만들어집니다.
+        return ProfileDto.Response.from(user, false, personaId, todayVisits);
+    }
+
+    @Transactional
+    public ProfileDto.Response getPublicProfile(String handle, String personaId) {
+        return getPublicProfile(handle, personaId, null, null);
     }
 
     /**
@@ -42,7 +61,18 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        return ProfileDto.Response.from(user, true);
+        Long todayVisits = visitService.getTodayVisits(userId);
+        return ProfileDto.Response.from(user, true, null, todayVisits);
+    }
+
+    /**
+     * ⭐️ 방문자 통계 조회 (상세 대시보드용)
+     */
+    @Transactional(readOnly = true)
+    public VisitStatDto.Response getVisitStatsByHandle(String handle) {
+        User user = userRepository.findByHandle(handle)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        return visitService.getVisitStats(user.getId());
     }
 
     /**
@@ -81,15 +111,16 @@ public class UserService {
     public List<ProfileDto.Response> searchUsers(String keyword) {
         List<User> users;
 
-        // 검색어가 없으면 전체를 가져오도록 처리
+        // 검색어가 없으면 일반 유저(ROLE_USER) 목록만 조회 (관리자 계정 원천 제외)
         if (keyword == null || keyword.trim().isEmpty()) {
-            users = userRepository.findAll();
+            users = userRepository.findByUserRole(UserRole.ROLE_USER);
         } else {
-            // ⭐️ 기존에 구현해둔 안전한 커스텀 쿼리 메서드 호출 (MySQL 특수문자 이스케이프 버그 방어)
+            // ⭐️ ROLE_ADMIN을 제외하는 커스텀 쿼리 호출
             users = userRepository.searchUsers(keyword);
         }
 
         return users.stream()
+                .filter(user -> user.getUserRole() != UserRole.ROLE_ADMIN) // 이중 방어 필터링
                 .map(user -> ProfileDto.Response.from(user, false)) // 퍼블릭 프로필 정보로 변환하여 반환
                 .collect(Collectors.toList());
     }
@@ -124,20 +155,26 @@ public class UserService {
 
         // ⭐️ 소셜 연동 계정이 아닐 때(이메일 가입자일 때)만 비밀번호 검증
         if (user.getOauthProvider() == null) {
-            if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            if (request == null || request.getPassword() == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
                 throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
             }
         }
 
-        // 1. 유저가 작성한 모든 기록 지우기
+        // 1. 유저의 모든 팔로우 관계 삭제 (팔로워 및 팔로잉 외래키 무결성 보장)
+        followRepository.deleteAllByUserId(userId);
+
+        // 2. 유저의 일별 방문자 통계 기록 삭제
+        dailyVisitRepository.deleteAllByUserId(userId);
+
+        // 3. 유저가 작성한 모든 기록 지우기 (RecordTag는 CascadeType.ALL에 의해 연쇄 삭제)
         List<Record> records = recordRepository.findAllByUserIdWithTags(userId);
         recordRepository.deleteAll(records);
 
-        // 2. 유저가 작성한 모든 카테고리(및 하위 태그들) 지우기
+        // 4. 유저가 작성한 모든 카테고리(및 하위 태그들) 지우기 (Tag는 CascadeType.ALL에 의해 연쇄 삭제)
         List<Category> categories = categoryRepository.findAllByUserId(userId);
         categoryRepository.deleteAll(categories);
 
-        // 3. 마지막으로 유저 본인 지우기
+        // 5. 마지막으로 유저 본인 지우기
         userRepository.delete(user);
     }
 }

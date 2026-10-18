@@ -2,6 +2,8 @@ package com.cravelog.api;
 
 import com.cravelog.domain.user.UserService;
 import com.cravelog.domain.user.dto.ProfileDto;
+import com.cravelog.domain.user.dto.VisitStatDto;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,17 +21,49 @@ public class ProfileController {
     private final UserService userService;
 
     /**
-     * 1. 누구나 볼 수 있는 퍼블릭 프로필 조회 (⭐️ 페르소나 파라미터 적용)
+     * 1. 누구나 볼 수 있는 퍼블릭 프로필 조회 (⭐️ 페르소나 파라미터 및 방문자 추적 적용)
      * GET /api/v1/users/{handle}/profile?p={personaId}
      */
     @GetMapping("/users/{handle}/profile")
     public ResponseEntity<ProfileDto.Response> getPublicProfile(
             @PathVariable String handle,
-            @RequestParam(name = "p", required = false) String personaId // ⭐️ 프론트엔드에서 보낸 파라미터 받기
+            @RequestParam(name = "p", required = false) String personaId,
+            @AuthenticationPrincipal User principal,
+            HttpServletRequest request
     ) {
-        // UserService로 파라미터를 넘깁니다.
-        ProfileDto.Response response = userService.getPublicProfile(handle, personaId);
+        String visitorIp = extractClientIp(request);
+        Long authUserId = (principal != null) ? Long.parseLong(principal.getUsername()) : null;
+
+        ProfileDto.Response response = userService.getPublicProfile(handle, personaId, visitorIp, authUserId);
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 1-1. 특정 유저의 방문자 통계 조회 (대시보드 / 7일 추이 차트용)
+     * GET /api/v1/users/{handle}/visit-stats
+     */
+    @GetMapping("/users/{handle}/visit-stats")
+    public ResponseEntity<VisitStatDto.Response> getVisitStats(@PathVariable String handle) {
+        VisitStatDto.Response response = userService.getVisitStatsByHandle(handle);
+        return ResponseEntity.ok(response);
+    }
+
+    private String extractClientIp(HttpServletRequest request) {
+        if (request == null) return "unknown";
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isBlank() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("CF-Connecting-IP");
+        }
+        if (ip == null || ip.isBlank() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("Proxy-Client-IP");
+        }
+        if (ip == null || ip.isBlank() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        if (ip != null && ip.contains(",")) {
+            ip = ip.split(",")[0].trim();
+        }
+        return ip;
     }
 
     /**
@@ -75,7 +109,9 @@ public class ProfileController {
      * 6. 계정 탈퇴 API
      */
     @DeleteMapping("/me")
-    public ResponseEntity<Void> deleteAccount(@AuthenticationPrincipal User principal, @RequestBody ProfileDto.DeleteAccountRequest request) {
+    public ResponseEntity<Void> deleteAccount(
+            @AuthenticationPrincipal User principal, 
+            @RequestBody(required = false) ProfileDto.DeleteAccountRequest request) {
         Long myUserId = Long.parseLong(principal.getUsername());
         userService.deleteAccount(myUserId, request);
         return ResponseEntity.ok().build();

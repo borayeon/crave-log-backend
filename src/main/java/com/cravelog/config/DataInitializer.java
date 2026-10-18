@@ -1,18 +1,54 @@
 package com.cravelog.config;
 
+import com.cravelog.domain.user.User;
 import com.cravelog.domain.user.UserRepository;
+import com.cravelog.domain.user.UserRole;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
+@Slf4j
 @Configuration
 public class DataInitializer {
 
     @Bean
-    public CommandLineRunner initData(UserRepository userRepository) {
+    public CommandLineRunner initData(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         return args -> {
-            // 기존 4명의 가짜 더미 데이터(Mock Data) 자동 생성 로직을 제거했습니다.
-            // (추후 시스템에 꼭 필요한 기본 카테고리나 기본 권한 등을 초기화할 때 이 곳을 활용하시면 됩니다.)
+            // ⭐️ 시스템 최고 관리자(Admin) 전용 독립 계정 생성 및 권한 검증 (실사용 계정과 엄격 분리)
+            userRepository.findByHandle("admin_craver").ifPresentOrElse(
+                admin -> {
+                    if (!admin.isAdmin()) {
+                        admin.promoteToAdmin();
+                        userRepository.save(admin);
+                        log.info("🛡️ 기존 admin_craver 계정에 ROLE_ADMIN 권한을 성공적으로 갱신했습니다.");
+                    }
+                },
+                () -> {
+                    User admin = User.builder()
+                            .name("CraveLog 최고관리자")
+                            .handle("admin_craver")
+                            .email("admin@cravelog.local")
+                            .password(passwordEncoder.encode("craver_admin_secret_2026!"))
+                            .oauthProvider("LOCAL")
+                            .oauthId("admin_craver")
+                            .build();
+
+                    admin.promoteToAdmin(); // ROLE_ADMIN 부여
+                    userRepository.save(admin);
+                    log.info("🛡️ 시스템 최고 관리자 계정(admin_craver / ROLE_ADMIN)이 성공적으로 초기화되었습니다.");
+                }
+            );
+
+            // ⭐️ 실사용 계정(taeya00)이 관리자로 잘못 설정되어 있지 않도록 ROLE_USER 권한 보장
+            userRepository.findByHandle("taeya00").ifPresent(user -> {
+                if (user.isAdmin()) {
+                    user.demoteToUser();
+                    userRepository.save(user);
+                    log.info("👤 실사용 계정(taeya00)의 권한을 일반 유저(ROLE_USER)로 정상 설정했습니다.");
+                }
+            });
         };
     }
 }

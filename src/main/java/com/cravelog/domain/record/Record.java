@@ -37,39 +37,61 @@ public class Record extends BaseTimeEntity {
     @Column(columnDefinition = "TEXT")
     private String content;      // 기록의 간단한 내용(메모)
 
-    // Record.java 에 필드 추가
     @Column(length = 500)
     private String youtubeUrl;
 
-    // 이 기록 자체를 남에게 숨길 것인지 여부
+    // 하위 호환성을 위해 유지 (0: 전체공개면 true)
     @Column(nullable = false)
     private boolean isPublic = true;
+
+    // ⭐️ 4단계 공개 보안 레벨 (0: 전체공개, 1: 팔로워공개, 2: 비밀공개, 4: 비공개)
+    @Column(nullable = false)
+    private Integer visibilityLevel = 0;
+
+    // ⭐️ 2단계 비밀공개용 패스코드
+    @Column(length = 50)
+    private String passcode;
 
     // 양방향 매핑: 게시글 하나에 달린 태그 매핑 리스트
     @OneToMany(mappedBy = "record", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RecordTag> recordTags = new ArrayList<>();
 
-    // ⭐️ 수정: youtubeUrl 파라미터 추가
     @Builder
-    public Record(User user, String title, String categoryName, String recordDate, String imageUrl, String youtubeUrl, String content, boolean isPublic) {
+    public Record(User user, String title, String categoryName, String recordDate, String imageUrl, String youtubeUrl, String content, boolean isPublic, Integer visibilityLevel, String passcode) {
         this.user = user;
         this.title = title;
         this.categoryName = categoryName;
         this.recordDate = recordDate;
         this.imageUrl = imageUrl;
-        this.youtubeUrl = youtubeUrl; // ⭐️ 추가
+        this.youtubeUrl = youtubeUrl;
         this.content = content;
-        this.isPublic = isPublic;
+        this.visibilityLevel = visibilityLevel != null ? visibilityLevel : (isPublic ? 0 : 4);
+        this.passcode = passcode;
+        this.isPublic = (this.visibilityLevel == 0);
     }
 
-    // 🔥 수정: youtubeUrl 파라미터 추가
-    public void update(String title, String categoryName, String recordDate, String imageUrl, String youtubeUrl, String content, boolean isPublic) {
+    public void update(String title, String categoryName, String recordDate, String imageUrl, String youtubeUrl, String content, boolean isPublic, Integer visibilityLevel, String passcode) {
         this.title = title;
         this.categoryName = categoryName;
         this.recordDate = recordDate;
         this.imageUrl = imageUrl;
-        this.youtubeUrl = youtubeUrl; // ⭐️ 추가
+        this.youtubeUrl = youtubeUrl;
         this.content = content;
-        this.isPublic = isPublic;
+        if (visibilityLevel != null) {
+            this.visibilityLevel = visibilityLevel;
+            this.passcode = passcode;
+            this.isPublic = (this.visibilityLevel == 0);
+        } else {
+            this.isPublic = isPublic;
+            this.visibilityLevel = isPublic ? 0 : 4;
+        }
+    }
+
+    public void updateVisibility(Integer visibilityLevel, String passcode) {
+        if (visibilityLevel != null) {
+            this.visibilityLevel = visibilityLevel;
+            this.passcode = passcode;
+            this.isPublic = (visibilityLevel == 0);
+        }
     }
 }
