@@ -159,6 +159,11 @@ public class ProfileDto {
                     Map<String, Object> personas = (Map<String, Object>) idolData.get("personas");
                     for (Map.Entry<String, Object> entry : personas.entrySet()) {
                         Map<String, Object> persona = (Map<String, Object>) entry.getValue();
+                        // ⭐️ 비활성화된 페르소나는 토큰 접근 차단
+                        Object isActive = persona.get("isActive");
+                        if (isActive != null && (isActive.equals(false) || "false".equalsIgnoreCase(String.valueOf(isActive)))) {
+                            continue;
+                        }
                         // 페르소나 객체 안에 저장된 토큰 값과 일치하는지 검사
                         String personaToken = (String) persona.get("token");
                         if (token.equals(personaToken)) {
