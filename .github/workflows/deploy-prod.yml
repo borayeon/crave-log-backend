@@ -36,5 +36,7 @@ jobs:
         with:
           context: .
           push: true
-          # 🔥 태그를 latest 대신 prod로 지정 (이전에 만든 docker-compose.yml과 맞춤)
-          tags: ${{ secrets.DOCKER_USERNAME }}/cravelog-backend:prod
+          # 🔥 prod 태그와 latest 태그를 모두 푸시하여 Watchtower 및 기존 컨테이너 설정 모두 호환
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/cravelog-backend:prod
+            ${{ secrets.DOCKER_USERNAME }}/cravelog-backend:latest
