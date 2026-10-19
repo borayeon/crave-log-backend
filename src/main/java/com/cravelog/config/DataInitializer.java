@@ -2,21 +2,27 @@ package com.cravelog.config;
 
 import com.cravelog.domain.user.User;
 import com.cravelog.domain.user.UserRepository;
-import com.cravelog.domain.user.UserRole;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.security.SecureRandom;
+import java.util.Base64;
+
 @Slf4j
 @Configuration
 public class DataInitializer {
 
+    @Value("${ADMIN_INITIAL_PASSWORD:}")
+    private String adminInitialPassword;
+
     @Bean
     public CommandLineRunner initData(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         return args -> {
-            // ⭐️ 시스템 최고 관리자(Admin) 전용 독립 계정 생성 및 권한 검증 (실사용 계정과 엄격 분리)
+            // ⭐️ 시스템 최고 관리자(Admin) 전용 독립 계정 생성 및 권한 검증 (하드코딩된 평문 비밀번호 제거)
             userRepository.findByHandle("admin_craver").ifPresentOrElse(
                 admin -> {
                     if (!admin.isAdmin()) {
@@ -26,18 +32,22 @@ public class DataInitializer {
                     }
                 },
                 () -> {
+                    String initialSecret = (adminInitialPassword != null && !adminInitialPassword.isBlank())
+                            ? adminInitialPassword
+                            : generateSecureRandomPassword();
+
                     User admin = User.builder()
                             .name("CraveLog 최고관리자")
                             .handle("admin_craver")
                             .email("admin@cravelog.local")
-                            .password(passwordEncoder.encode("craver_admin_secret_2026!"))
+                            .password(passwordEncoder.encode(initialSecret))
                             .oauthProvider("LOCAL")
                             .oauthId("admin_craver")
                             .build();
 
                     admin.promoteToAdmin(); // ROLE_ADMIN 부여
                     userRepository.save(admin);
-                    log.info("🛡️ 시스템 최고 관리자 계정(admin_craver / ROLE_ADMIN)이 성공적으로 초기화되었습니다.");
+                    log.info("🛡️ 시스템 최고 관리자 계정(admin_craver / ROLE_ADMIN)이 초기화되었습니다.");
                 }
             );
 
@@ -50,5 +60,11 @@ public class DataInitializer {
                 }
             });
         };
+    }
+
+    private String generateSecureRandomPassword() {
+        byte[] bytes = new byte[24];
+        new SecureRandom().nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 }

@@ -51,11 +51,12 @@ public class PlatformAnalyticsController {
             @RequestParam(defaultValue = "14") int days,
             HttpServletRequest request) {
 
+        String remoteAddr = request.getRemoteAddr();
         String clientIp = extractClientIp(request);
 
-        // 1. IP 화이트리스트 검증 (로컬망 및 지정 IP만 허용)
-        if (!isWhitelistedIp(clientIp)) {
-            log.warn("🚨 비허가 외부 IP에서 관리자 API 접근 시도 차단: IP={}", clientIp);
+        // 1. IP 화이트리스트 검증 (외부에서의 X-Forwarded-For 헤더 스푸핑 원천 차단: 실제 소켓 연결 IP도 신뢰망이어야 함)
+        if (!isWhitelistedIp(remoteAddr) || !isWhitelistedIp(clientIp)) {
+            log.warn("🚨 비허가 외부 IP에서 관리자 API 접근 시도 차단: remoteAddr={}, clientIp={}", remoteAddr, clientIp);
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "외부 IP에서의 관리자 API 접근이 엄격히 차단되었습니다.");
         }
 
@@ -83,28 +84,26 @@ public class PlatformAnalyticsController {
         // 로컬호스트 루프백 및 내부망 허용
         return ip.equals("127.0.0.1") ||
                ip.equals("0:0:0:0:0:0:0:1") ||
+               ip.equals("::1") ||
                ip.equalsIgnoreCase("localhost") ||
                ip.startsWith("192.168.") ||
+               ip.startsWith("172.") ||
                ip.startsWith("10.");
     }
 
     private String extractClientIp(HttpServletRequest request) {
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("CF-Connecting-IP");
+        if (request == null) return "unknown";
+        String remoteAddr = request.getRemoteAddr();
+        // 신뢰할 수 있는 내부 프록시(루프백/사설망)를 거친 요청일 때만 X-Forwarded-For 헤더 참조
+        if (isWhitelistedIp(remoteAddr)) {
+            String ip = request.getHeader("X-Forwarded-For");
+            if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                ip = request.getHeader("CF-Connecting-IP");
+            }
+            if (ip != null && !ip.isBlank() && !"unknown".equalsIgnoreCase(ip)) {
+                return ip.contains(",") ? ip.split(",")[0].trim() : ip.trim();
+            }
         }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("Proxy-Client-IP");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("WL-Proxy-Client-IP");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getRemoteAddr();
-        }
-        if (ip != null && ip.contains(",")) {
-            ip = ip.split(",")[0].trim();
-        }
-        return ip;
+        return remoteAddr;
     }
 }
