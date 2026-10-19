@@ -9,13 +9,16 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.time.Duration;
-import java.util.Random;
 
 @Slf4j // ⭐️ 에러 추적을 위한 로거 추가
 @Service
 @RequiredArgsConstructor
 public class EmailService {
+
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final int MAX_VERIFY_ATTEMPTS = 5;
 
     private final JavaMailSender mailSender;
     private final StringRedisTemplate redisTemplate;
@@ -34,8 +37,9 @@ public class EmailService {
 
         String code = generateCode();
 
-        // Redis에 저장 (Key: AuthCode:이메일, Value: 인증번호, TTL: 5분)
+        // Redis에 저장 (Key: AuthCode:이메일, Value: 인증번호, TTL: 5분) 및 실패 횟수 초기화
         redisTemplate.opsForValue().set("AuthCode:" + toEmail, code, Duration.ofMinutes(5));
+        redisTemplate.delete("AuthCodeAttempts:" + toEmail);
 
         // 이메일 발송 설정
         try {
@@ -51,15 +55,34 @@ public class EmailService {
             log.error("이메일 발송 실패: {}", toEmail, e);
             // 메일 전송이 실패했으니 Redis에 올려둔 코드도 지워주는 센스!
             redisTemplate.delete("AuthCode:" + toEmail);
+            redisTemplate.delete("AuthCodeAttempts:" + toEmail);
         }
     }
 
     /**
-     * 2. 사용자가 입력한 인증번호가 Redis에 저장된 값과 일치하는지 검증
+     * 2. 사용자가 입력한 인증번호가 Redis에 저장된 값과 일치하는지 검증 (브루트포스 방어: 5회 실패 시 코드 즉시 폐기)
      */
     public boolean verifyCode(String email, String inputCode) {
+        if (email == null || inputCode == null) return false;
+
         String storedCode = redisTemplate.opsForValue().get("AuthCode:" + email);
-        return storedCode != null && storedCode.equals(inputCode);
+        if (storedCode == null) {
+            return false;
+        }
+
+        if (storedCode.equals(inputCode.trim())) {
+            redisTemplate.delete("AuthCodeAttempts:" + email);
+            return true;
+        }
+
+        Long attempts = redisTemplate.opsForValue().increment("AuthCodeAttempts:" + email);
+        redisTemplate.expire("AuthCodeAttempts:" + email, Duration.ofMinutes(5));
+        if (attempts != null && attempts >= MAX_VERIFY_ATTEMPTS) {
+            log.warn("🚨 이메일 인증번호 브루트포스 감지 (5회 이상 실패) - 인증코드 폐기: {}", email);
+            redisTemplate.delete("AuthCode:" + email);
+            redisTemplate.delete("AuthCodeAttempts:" + email);
+        }
+        return false;
     }
 
     /**
@@ -67,11 +90,11 @@ public class EmailService {
      */
     public void deleteCode(String email) {
         redisTemplate.delete("AuthCode:" + email);
+        redisTemplate.delete("AuthCodeAttempts:" + email);
     }
 
-    // 6자리 난수 생성기
+    // 암호학적 난수 생성기(SecureRandom) 기반 6자리 코드 생성
     private String generateCode() {
-        Random random = new Random();
-        return String.format("%06d", random.nextInt(1000000));
+        return String.format("%06d", SECURE_RANDOM.nextInt(1000000));
     }
 }

@@ -141,19 +141,46 @@ public class RecordService {
                 .collect(Collectors.toList());
     }
 
+    // ⭐️ 2단계 비밀 공개 기록 PIN 브루트포스 방어용 카운터 (recordId -> [실패횟수, 잠금만료시각])
+    private final java.util.concurrent.ConcurrentHashMap<Long, long[]> passcodeAttemptMap = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final int MAX_PASSCODE_ATTEMPTS = 5;
+    private static final long LOCKOUT_DURATION_MS = 5 * 60 * 1000L; // 5분
+
     /**
-     * ⭐️ 2단계 비밀 공개 기록의 비밀번호(패스코드) 검증 및 원본 데이터 반환
+     * ⭐️ 2단계 비밀 공개 기록의 비밀번호(패스코드) 검증 및 원본 데이터 반환 (브루트포스 방어 적용)
      */
     @Transactional(readOnly = true)
     public RecordDto.Response verifyPasscode(Long recordId, String passcode) {
+        long now = System.currentTimeMillis();
+        long[] state = passcodeAttemptMap.get(recordId);
+        if (state != null && state[0] >= MAX_PASSCODE_ATTEMPTS) {
+            if (now < state[1]) {
+                throw new IllegalArgumentException("비밀번호 입력 오류 횟수를 초과했습니다. 5분 후에 다시 시도해주세요.");
+            } else {
+                passcodeAttemptMap.remove(recordId);
+            }
+        }
+
         Record record = recordRepository.findById(recordId)
                 .orElseThrow(() -> new IllegalArgumentException("기록을 찾을 수 없습니다."));
 
         int level = record.getVisibilityLevel() != null ? record.getVisibilityLevel() : 0;
+        if (level == 4) {
+            throw new IllegalArgumentException("비공개 기록입니다.");
+        }
         if (level == 2) {
-            if (record.getPasscode() != null && !record.getPasscode().equals(passcode)) {
+            if (record.getPasscode() == null || !record.getPasscode().equals(passcode)) {
+                passcodeAttemptMap.compute(recordId, (k, v) -> {
+                    if (v == null || now >= v[1]) {
+                        return new long[]{1, now + LOCKOUT_DURATION_MS};
+                    }
+                    v[0]++;
+                    v[1] = now + LOCKOUT_DURATION_MS;
+                    return v;
+                });
                 throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
             }
+            passcodeAttemptMap.remove(recordId);
         }
 
         return RecordDto.Response.from(record, false, "NONE");
@@ -198,11 +225,14 @@ public class RecordService {
                 .build();
 
         if (request.getTagIds() != null && !request.getTagIds().isEmpty()) {
+            // 🛡️ IDOR 방어: 본인(userId) 소유의 태그만 연결 허용
             List<Tag> tags = tagRepository.findAllById(request.getTagIds());
-            tags.forEach(tag -> {
-                RecordTag recordTag = new RecordTag(record, tag);
-                record.getRecordTags().add(recordTag);
-            });
+            tags.stream()
+                    .filter(tag -> tag.getUser() != null && tag.getUser().getId().equals(userId))
+                    .forEach(tag -> {
+                        RecordTag recordTag = new RecordTag(record, tag);
+                        record.getRecordTags().add(recordTag);
+                    });
         }
 
         if (request.getNewTags() != null && !request.getNewTags().isEmpty()) {
@@ -244,11 +274,14 @@ public class RecordService {
         record.getRecordTags().clear();
 
         if (request.getTagIds() != null && !request.getTagIds().isEmpty()) {
+            // 🛡️ IDOR 방어: 본인(userId) 소유의 태그만 연결 허용
             List<Tag> tags = tagRepository.findAllById(request.getTagIds());
-            tags.forEach(tag -> {
-                RecordTag recordTag = new RecordTag(record, tag);
-                record.getRecordTags().add(recordTag);
-            });
+            tags.stream()
+                    .filter(tag -> tag.getUser() != null && tag.getUser().getId().equals(userId))
+                    .forEach(tag -> {
+                        RecordTag recordTag = new RecordTag(record, tag);
+                        record.getRecordTags().add(recordTag);
+                    });
         }
     }
 

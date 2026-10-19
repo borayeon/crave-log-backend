@@ -143,4 +143,39 @@ public class User extends BaseTimeEntity {
     public boolean isAdmin() {
         return this.userRole == UserRole.ROLE_ADMIN;
     }
+
+    // ⭐️ 프로필 검색 노출 허용 여부 확인 (기본값: true)
+    public boolean isSearchable() {
+        if (this.privacySettings == null || !this.privacySettings.containsKey("isSearchable")) {
+            return true;
+        }
+        Object val = this.privacySettings.get("isSearchable");
+        if (val == null) return true;
+        return !Boolean.FALSE.equals(val) && !"false".equalsIgnoreCase(String.valueOf(val));
+    }
+
+    // ⭐️ 세부 항목별(role, bio, tags) 검색 및 검색결과 카드 노출 허용 여부 확인 (기본값: true)
+    public boolean isFieldSearchable(String fieldKey) {
+        if (!isSearchable()) return false;
+        String key = "search_" + fieldKey;
+        if (this.privacySettings == null || !this.privacySettings.containsKey(key)) {
+            return true;
+        }
+        Object val = this.privacySettings.get(key);
+        if (val == null) return true;
+        return !Boolean.FALSE.equals(val) && !"false".equalsIgnoreCase(String.valueOf(val));
+    }
+
+    // ⭐️ 검색 노출 설정만 단독 업데이트
+    public void updateSearchPrivacy(Boolean isSearchable, Boolean searchRole, Boolean searchBio, Boolean searchTags) {
+        if (this.privacySettings == null) {
+            this.privacySettings = new java.util.HashMap<>();
+        } else {
+            this.privacySettings = new java.util.HashMap<>(this.privacySettings);
+        }
+        if (isSearchable != null) this.privacySettings.put("isSearchable", isSearchable);
+        if (searchRole != null) this.privacySettings.put("search_role", searchRole);
+        if (searchBio != null) this.privacySettings.put("search_bio", searchBio);
+        if (searchTags != null) this.privacySettings.put("search_tags", searchTags);
+    }
 }

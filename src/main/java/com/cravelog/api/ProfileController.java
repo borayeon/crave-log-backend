@@ -48,30 +48,55 @@ public class ProfileController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * 1-2. 프로필 서브 탭 / 페르소나 PIN 서버 사이드 검증 API
+     * POST /api/v1/users/{handle}/verify-pin
+     */
+    @PostMapping("/users/{handle}/verify-pin")
+    public ResponseEntity<ProfileDto.Response> verifyProfilePin(
+            @PathVariable String handle,
+            @RequestBody ProfileDto.VerifyPinRequest requestDto,
+            @AuthenticationPrincipal User principal,
+            HttpServletRequest request
+    ) {
+        String clientIp = extractClientIp(request);
+        Long authUserId = (principal != null) ? Long.parseLong(principal.getUsername()) : null;
+        ProfileDto.Response response = userService.verifyProfilePin(handle, requestDto, authUserId, clientIp);
+        return ResponseEntity.ok(response);
+    }
+
     private String extractClientIp(HttpServletRequest request) {
         if (request == null) return "unknown";
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isBlank() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("CF-Connecting-IP");
+        String remoteAddr = request.getRemoteAddr();
+        // 신뢰된 내부 리버스 프록시에서 온 요청일 때만 X-Forwarded-For / CF-Connecting-IP 신뢰 (IP 스푸핑 통한 방문수 조작 방어)
+        boolean trustedProxy = remoteAddr != null && (
+                "127.0.0.1".equals(remoteAddr) || "0:0:0:0:0:0:0:1".equals(remoteAddr) || "::1".equals(remoteAddr)
+                || remoteAddr.startsWith("10.") || remoteAddr.startsWith("192.168.")
+                || remoteAddr.matches("^172\\.(1[6-9]|2[0-9]|3[0-1])\\..*")
+        );
+        if (trustedProxy) {
+            String ip = request.getHeader("X-Forwarded-For");
+            if (ip == null || ip.isBlank() || "unknown".equalsIgnoreCase(ip)) {
+                ip = request.getHeader("CF-Connecting-IP");
+            }
+            if (ip != null && !ip.isBlank() && !"unknown".equalsIgnoreCase(ip)) {
+                return ip.contains(",") ? ip.split(",")[0].trim() : ip.trim();
+            }
         }
-        if (ip == null || ip.isBlank() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("Proxy-Client-IP");
-        }
-        if (ip == null || ip.isBlank() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getRemoteAddr();
-        }
-        if (ip != null && ip.contains(",")) {
-            ip = ip.split(",")[0].trim();
-        }
-        return ip;
+        return remoteAddr != null ? remoteAddr : "unknown";
     }
 
     /**
-     * 2. 유저 검색
+     * 2. 유저 검색 (검색 노출 설정, 필터 모드 및 팔로우 상태 반영)
      */
     @GetMapping("/users/search")
-    public ResponseEntity<List<ProfileDto.Response>> searchUsers(@RequestParam(required = false, defaultValue = "") String keyword) {
-        List<ProfileDto.Response> response = userService.searchUsers(keyword);
+    public ResponseEntity<List<ProfileDto.SearchResponse>> searchUsers(
+            @RequestParam(required = false, defaultValue = "") String keyword,
+            @RequestParam(required = false, defaultValue = "all") String filter,
+            @AuthenticationPrincipal User principal
+    ) {
+        Long authUserId = (principal != null) ? Long.parseLong(principal.getUsername()) : null;
+        List<ProfileDto.SearchResponse> response = userService.searchUsers(keyword, filter, authUserId);
         return ResponseEntity.ok(response);
     }
 
@@ -92,6 +117,19 @@ public class ProfileController {
     public ResponseEntity<Void> updateProfile(@AuthenticationPrincipal User principal, @RequestBody ProfileDto.UpdateRequest request) {
         Long myUserId = Long.parseLong(principal.getUsername());
         userService.updateProfile(myUserId, request);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * 4-1. 내 검색 노출 설정 단독 변경 API
+     */
+    @PatchMapping("/me/search-privacy")
+    public ResponseEntity<Void> updateSearchPrivacy(
+            @AuthenticationPrincipal User principal,
+            @RequestBody ProfileDto.SearchPrivacyRequest request
+    ) {
+        Long myUserId = Long.parseLong(principal.getUsername());
+        userService.updateSearchPrivacy(myUserId, request);
         return ResponseEntity.ok().build();
     }
 
