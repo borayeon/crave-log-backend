@@ -28,4 +28,24 @@ public interface PlatformDailyStatRepository extends JpaRepository<PlatformDaily
 
     @Query("SELECT COALESCE(SUM(s.tabletCount), 0) FROM PlatformDailyStat s")
     Long sumTotalTabletCount();
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("UPDATE PlatformDailyStat s SET s.uniqueVisitors = s.uniqueVisitors + 1 WHERE s.statDate = :statDate")
+    int incrementUniqueVisitor(@Param("statDate") LocalDate statDate);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("UPDATE PlatformDailyStat s SET s.pageViews = s.pageViews + 1, " +
+           "s.desktopCount = s.desktopCount + CASE WHEN :device = 'DESKTOP' THEN 1L ELSE 0L END, " +
+           "s.mobileCount = s.mobileCount + CASE WHEN :device = 'MOBILE' THEN 1L ELSE 0L END, " +
+           "s.tabletCount = s.tabletCount + CASE WHEN :device = 'TABLET' THEN 1L ELSE 0L END " +
+           "WHERE s.statDate = :statDate")
+    int incrementPageViewAndDevice(@Param("statDate") LocalDate statDate, @Param("device") String device);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("UPDATE PlatformDailyStat s SET s.uniqueVisitors = s.uniqueVisitors + 1, s.pageViews = s.pageViews + 1, " +
+           "s.desktopCount = s.desktopCount + CASE WHEN :device = 'DESKTOP' THEN 1L ELSE 0L END, " +
+           "s.mobileCount = s.mobileCount + CASE WHEN :device = 'MOBILE' THEN 1L ELSE 0L END, " +
+           "s.tabletCount = s.tabletCount + CASE WHEN :device = 'TABLET' THEN 1L ELSE 0L END " +
+           "WHERE s.statDate = :statDate")
+    int incrementUvAndPageViewAndDevice(@Param("statDate") LocalDate statDate, @Param("device") String device);
 }

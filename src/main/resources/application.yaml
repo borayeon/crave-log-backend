@@ -49,6 +49,10 @@ jwt:
 server:
   port: 8080
 
+app:
+  admin:
+    whitelisted-ips: ${ADMIN_WHITELISTED_IPS:127.0.0.1,::1,0:0:0:0:0:0:0:1,localhost,192.168.,172.,10.}
+
 ---
 # ==========================================
 # 2. 로컬(Local) 환경 설정
