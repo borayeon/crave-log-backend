@@ -10,7 +10,8 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "platform_access_logs", indexes = {
-        @Index(name = "idx_access_time", columnList = "accessed_at DESC")
+        @Index(name = "idx_access_time", columnList = "accessed_at DESC"),
+        @Index(name = "idx_access_event_time", columnList = "event_type, accessed_at DESC")
 })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

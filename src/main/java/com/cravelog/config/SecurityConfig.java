@@ -51,6 +51,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/records/*/verify-passcode").permitAll() // 비밀번호 검증 허용
                         .requestMatchers("/api/v1/analytics/track").permitAll() // 플랫폼 트래픽 추적 허용
                         .requestMatchers("/api/v1/admin/**").authenticated() // 관리자 API는 인증 필수
+                        .requestMatchers("/api/v1/analytics/overview").authenticated() // 관리자 대시보드 API 인증 필수
 
                         // ⭐️ 1. 추가: 업로드된 사진(정적 리소스)은 누구나 볼 수 있어야 함
                         .requestMatchers("/uploads/**").permitAll()

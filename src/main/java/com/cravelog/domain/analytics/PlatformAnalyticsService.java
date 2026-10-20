@@ -40,6 +40,7 @@ public class PlatformAnalyticsService {
         recordPlatformVisit(ip, userAgent, path, referer, null, "PAGE_VIEW", null);
     }
 
+    @org.springframework.scheduling.annotation.Async
     @Transactional
     public void recordPlatformVisit(String ip, String userAgent, String path, String referer, Integer durationSeconds, String eventType, String eventDetail) {
         LocalDate today = LocalDate.now();
@@ -58,8 +59,12 @@ public class PlatformAnalyticsService {
 
         if (redisTemplate != null) {
             try {
+                Duration ttlUntilMidnight = Duration.between(LocalDateTime.now(), today.plusDays(1).atStartOfDay());
+                if (ttlUntilMidnight.isNegative() || ttlUntilMidnight.isZero()) {
+                    ttlUntilMidnight = Duration.ofMinutes(1);
+                }
                 String redisKey = String.format("Platform:Dedup:%s:%s", today, clientIp);
-                Boolean setResult = redisTemplate.opsForValue().setIfAbsent(redisKey, "1", Duration.ofHours(24));
+                Boolean setResult = redisTemplate.opsForValue().setIfAbsent(redisKey, "1", ttlUntilMidnight);
                 isNewUv = Boolean.TRUE.equals(setResult);
             } catch (Exception e) {
                 log.warn("Redis 플랫폼 방문자 중복 체크 실패 (MySQL 직접 반영): {}", e.getMessage());
@@ -67,18 +72,30 @@ public class PlatformAnalyticsService {
             }
         }
 
-        // 1. 일별 통계 엔티티 조회 또는 신규 생성 후 증가
-        PlatformDailyStat stat = dailyStatRepository.findByStatDate(today)
-                .orElseGet(() -> new PlatformDailyStat(today));
+        // 1. 일별 통계 원자적(Atomic) 증가 (Lost Update 및 동시 생성 유니크 충돌 방지)
+        int updated = 0;
+        if (isNewUv && "PAGE_VIEW".equalsIgnoreCase(type)) {
+            updated = dailyStatRepository.incrementUvAndPageViewAndDevice(today, deviceType);
+        } else if (isNewUv) {
+            updated = dailyStatRepository.incrementUniqueVisitor(today);
+        } else if ("PAGE_VIEW".equalsIgnoreCase(type)) {
+            updated = dailyStatRepository.incrementPageViewAndDevice(today, deviceType);
+        }
 
-        if (isNewUv) {
-            stat.incrementUniqueVisitor();
+        if (updated == 0) {
+            try {
+                dailyStatRepository.save(new PlatformDailyStat(today));
+            } catch (Exception ignored) {
+                // 다른 동시 요청이 이미 오늘자 레코드를 생성함
+            }
+            if (isNewUv && "PAGE_VIEW".equalsIgnoreCase(type)) {
+                dailyStatRepository.incrementUvAndPageViewAndDevice(today, deviceType);
+            } else if (isNewUv) {
+                dailyStatRepository.incrementUniqueVisitor(today);
+            } else if ("PAGE_VIEW".equalsIgnoreCase(type)) {
+                dailyStatRepository.incrementPageViewAndDevice(today, deviceType);
+            }
         }
-        if ("PAGE_VIEW".equalsIgnoreCase(type)) {
-            stat.incrementPageView();
-            stat.incrementDevice(deviceType);
-        }
-        dailyStatRepository.save(stat);
 
         // 2. 최근 접속 로그 저장
         try {
@@ -165,8 +182,10 @@ public class PlatformAnalyticsService {
             deviceShare.add(new NameValueDto("데스크톱", 0, 100.0));
         }
 
+        LocalDateTime since = startDate.atStartOfDay();
+
         // 5. 브라우저 점유율 (상위 5개)
-        List<Object[]> rawBrowsers = accessLogRepository.findTopBrowsers(PageRequest.of(0, 5));
+        List<Object[]> rawBrowsers = accessLogRepository.findTopBrowsers(since, PageRequest.of(0, 5));
         long browserTotal = rawBrowsers.stream().mapToLong(row -> (Long) row[1]).sum();
         List<NameValueDto> topBrowsers = rawBrowsers.stream()
                 .map(row -> {
@@ -178,7 +197,7 @@ public class PlatformAnalyticsService {
                 .collect(Collectors.toList());
 
         // 6. OS 점유율 (상위 5개)
-        List<Object[]> rawOs = accessLogRepository.findTopOs(PageRequest.of(0, 5));
+        List<Object[]> rawOs = accessLogRepository.findTopOs(since, PageRequest.of(0, 5));
         long osTotal = rawOs.stream().mapToLong(row -> (Long) row[1]).sum();
         List<NameValueDto> topOs = rawOs.stream()
                 .map(row -> {
@@ -190,7 +209,7 @@ public class PlatformAnalyticsService {
                 .collect(Collectors.toList());
 
         // 7. 인기 페이지 경로 (상위 5개, 표시 이름 기준으로 합산 집계)
-        List<Object[]> rawPaths = accessLogRepository.findTopPaths(PageRequest.of(0, 20));
+        List<Object[]> rawPaths = accessLogRepository.findTopPaths(since, PageRequest.of(0, 20));
         Map<String, Long> aggregatedPaths = new LinkedHashMap<>();
         for (Object[] row : rawPaths) {
             String rawPath = (String) row[0];
@@ -209,7 +228,7 @@ public class PlatformAnalyticsService {
                 .collect(Collectors.toList());
 
         // 8. 유입 경로 (Referrer / Traffic Source) 분석 (상위 5개)
-        List<Object[]> rawReferrers = accessLogRepository.findTopReferrers(PageRequest.of(0, 30));
+        List<Object[]> rawReferrers = accessLogRepository.findTopReferrers(since, PageRequest.of(0, 30));
         Map<String, Long> aggregatedReferrers = new LinkedHashMap<>();
         for (Object[] row : rawReferrers) {
             String rawRef = (String) row[0];
@@ -228,7 +247,7 @@ public class PlatformAnalyticsService {
                 .collect(Collectors.toList());
 
         // 9. 최다 검색 키워드 (상위 5개)
-        List<Object[]> rawSearch = accessLogRepository.findTopSearchKeywords(PageRequest.of(0, 5));
+        List<Object[]> rawSearch = accessLogRepository.findTopSearchKeywords(since, PageRequest.of(0, 5));
         long searchTotal = rawSearch.stream().mapToLong(r -> (Long) r[1]).sum();
         List<NameValueDto> topSearchKeywords = rawSearch.stream()
                 .map(row -> {
@@ -240,7 +259,7 @@ public class PlatformAnalyticsService {
                 .collect(Collectors.toList());
 
         // 10. 최다 클릭 외부 링크 (상위 5개)
-        List<Object[]> rawClicks = accessLogRepository.findTopOutboundClicks(PageRequest.of(0, 5));
+        List<Object[]> rawClicks = accessLogRepository.findTopOutboundClicks(since, PageRequest.of(0, 5));
         long clicksTotal = rawClicks.stream().mapToLong(r -> (Long) r[1]).sum();
         List<NameValueDto> topOutboundClicks = rawClicks.stream()
                 .map(row -> {
@@ -252,7 +271,7 @@ public class PlatformAnalyticsService {
                 .collect(Collectors.toList());
 
         // 11. 평균 화면 체류 시간 (초 단위)
-        Double avgDuration = accessLogRepository.findAverageDurationSeconds();
+        Double avgDuration = accessLogRepository.findAverageDurationSeconds(since);
         double averageDurationSeconds = avgDuration != null ? Math.round(avgDuration * 10.0) / 10.0 : 0.0;
 
         // 12. 최근 실시간 접속 로그 (최근 30개)
@@ -351,13 +370,14 @@ public class PlatformAnalyticsService {
     public static String detectDevice(String ua) {
         if (ua == null) return "DESKTOP";
         String lower = ua.toLowerCase();
-        if (lower.contains("ipad") || lower.contains("tablet")) return "TABLET";
+        if (lower.contains("ipad") || (lower.contains("android") && !lower.contains("mobile")) || lower.contains("tablet")) return "TABLET";
         if (lower.contains("mobile") || lower.contains("android") || lower.contains("iphone") || lower.contains("ipod")) return "MOBILE";
         return "DESKTOP";
     }
 
     public static String detectBrowser(String ua) {
         if (ua == null) return "Chrome";
+        if (ua.contains("SamsungBrowser/")) return "Samsung Internet";
         if (ua.contains("Edg/")) return "Edge";
         if (ua.contains("Whale/")) return "Naver Whale";
         if (ua.contains("OPR/") || ua.contains("Opera")) return "Opera";
