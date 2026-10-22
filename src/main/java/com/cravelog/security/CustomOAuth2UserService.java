@@ -47,24 +47,34 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         if (userOptional.isPresent()) {
             user = userOptional.get();
         } else {
-            // ⭐️ 새 유저 가입 처리
-            user = User.builder()
-                    .oauthProvider("KAKAO")
-                    .oauthId(oauthId)
-                    .name(nickname)
-                    .email(email)
-                    .handle("user_" + oauthId)
-                    .build();
-            userRepository.save(user); // 유저 먼저 저장
+            // ⭐️ 2-1. 기존에 같은 이메일로 가입된 계정이 있는지 확인 (카카오 계정 자동 연동)
+            Optional<User> existingEmailUser = (email != null && !email.isBlank() && !email.contains("no-email"))
+                    ? userRepository.findByEmail(email.trim())
+                    : Optional.empty();
 
-            // =======================================================
-            // ⭐️ 수정됨: 여러 개의 기본 카테고리를 리스트로 묶어서 한 번에 저장!
-            // =======================================================
-            List<Category> defaultCategories = List.of(
-                    new Category(user, "음악"),
-                    new Category(user, "🔗 URL 보관함")
-            );
-            categoryRepository.saveAll(defaultCategories);
+            if (existingEmailUser.isPresent()) {
+                // 기존 일반 가입 계정이 존재하면 카카오 OAuth 정보 연동
+                user = existingEmailUser.get();
+                user.linkOAuth("KAKAO", oauthId);
+                userRepository.save(user);
+            } else {
+                // ⭐️ 2-2. 새 유저 가입 처리
+                user = User.builder()
+                        .oauthProvider("KAKAO")
+                        .oauthId(oauthId)
+                        .name(nickname)
+                        .email(email)
+                        .handle("user_" + oauthId)
+                        .build();
+                userRepository.save(user); // 유저 먼저 저장
+
+                // 기본 카테고리 생성
+                List<Category> defaultCategories = List.of(
+                        new Category(user, "음악"),
+                        new Category(user, "🔗 URL 보관함")
+                );
+                categoryRepository.saveAll(defaultCategories);
+            }
         }
 
         // 3. Spring Security 내부에서 사용할 유저 객체 반환
