@@ -140,6 +140,12 @@ public class User extends BaseTimeEntity {
         this.userRole = UserRole.ROLE_USER;
     }
 
+    // ⭐️ 소셜 계정(카카오 등) 연동 메서드
+    public void linkOAuth(String oauthProvider, String oauthId) {
+        this.oauthProvider = oauthProvider;
+        this.oauthId = oauthId;
+    }
+
     public boolean isAdmin() {
         return this.userRole == UserRole.ROLE_ADMIN;
     }

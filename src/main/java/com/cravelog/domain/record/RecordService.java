@@ -7,6 +7,7 @@ import com.cravelog.domain.tag.Tag;
 import com.cravelog.domain.tag.TagRepository;
 import com.cravelog.domain.tag.dto.TagTreeDto;
 import com.cravelog.domain.user.FollowRepository;
+import com.cravelog.domain.user.FollowStatus;
 import com.cravelog.domain.user.User;
 import com.cravelog.domain.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -106,7 +107,8 @@ public class RecordService {
                     .collect(Collectors.toList());
         }
 
-        boolean isFollower = currentUserId != null && followRepository.existsByFollowerIdAndFollowingId(currentUserId, targetUser.getId());
+        boolean isFollower = currentUserId != null 
+                && followRepository.existsByFollowerIdAndFollowingIdAndStatus(currentUserId, targetUser.getId(), FollowStatus.ACCEPTED);
 
         List<RecordDto.Response> responses = new ArrayList<>();
         for (Record r : records) {
