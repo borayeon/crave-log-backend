@@ -28,8 +28,22 @@ public class Follow extends BaseTimeEntity {
     @JoinColumn(name = "following_id", nullable = false)
     private User following;
 
-    public Follow(User follower, User following) {
+    // 팔로우 상태 (신청 대기 PENDING / 수락 완료 ACCEPTED)
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private FollowStatus status = FollowStatus.ACCEPTED;
+
+    public Follow(User follower, User following, FollowStatus status) {
         this.follower = follower;
         this.following = following;
+        this.status = (status != null) ? status : FollowStatus.PENDING;
+    }
+
+    public Follow(User follower, User following) {
+        this(follower, following, FollowStatus.PENDING);
+    }
+
+    public void accept() {
+        this.status = FollowStatus.ACCEPTED;
     }
 }

@@ -9,6 +9,7 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -18,22 +19,68 @@ public class FollowController {
     private final FollowService followService;
 
     /**
-     * 특정 사용자 팔로우하기
+     * 특정 사용자에게 팔로우 신청(Request) 보내기
      */
     @PostMapping("/users/{handle}/follow")
-    public ResponseEntity<Void> follow(@AuthenticationPrincipal User principal, @PathVariable String handle) {
+    public ResponseEntity<FollowDto.FollowStatusResponse> follow(@AuthenticationPrincipal User principal, @PathVariable String handle) {
         Long myUserId = Long.parseLong(principal.getUsername());
-        followService.follow(myUserId, handle);
+        FollowDto.FollowStatusResponse response = followService.follow(myUserId, handle);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 특정 사용자 언팔로우하기 또는 팔로우 신청 취소하기
+     */
+    @DeleteMapping("/users/{handle}/follow")
+    public ResponseEntity<FollowDto.FollowStatusResponse> unfollow(@AuthenticationPrincipal User principal, @PathVariable String handle) {
+        Long myUserId = Long.parseLong(principal.getUsername());
+        FollowDto.FollowStatusResponse response = followService.unfollow(myUserId, handle);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 나에게 들어온 팔로우 신청 대기 목록 조회
+     */
+    @GetMapping("/me/follow-requests")
+    public ResponseEntity<List<FollowDto.UserSummary>> getFollowRequests(@AuthenticationPrincipal User principal) {
+        Long myUserId = Long.parseLong(principal.getUsername());
+        List<FollowDto.UserSummary> requests = followService.getPendingRequests(myUserId);
+        return ResponseEntity.ok(requests);
+    }
+
+    /**
+     * 나에게 들어온 팔로우 신청 대기 건수
+     */
+    @GetMapping("/me/follow-requests/count")
+    public ResponseEntity<Map<String, Long>> getFollowRequestCount(@AuthenticationPrincipal User principal) {
+        Long myUserId = Long.parseLong(principal.getUsername());
+        long count = followService.getPendingRequestCount(myUserId);
+        return ResponseEntity.ok(Map.of("count", count));
+    }
+
+    /**
+     * 팔로우 신청 수락하기
+     */
+    @PostMapping("/me/follow-requests/{followerId}/accept")
+    public ResponseEntity<Void> acceptFollowRequest(
+            @AuthenticationPrincipal User principal,
+            @PathVariable Long followerId
+    ) {
+        Long myUserId = Long.parseLong(principal.getUsername());
+        followService.acceptFollowRequest(myUserId, followerId);
         return ResponseEntity.ok().build();
     }
 
     /**
-     * 특정 사용자 언팔로우하기
+     * 팔로우 신청 거절하기
      */
-    @DeleteMapping("/users/{handle}/follow")
-    public ResponseEntity<Void> unfollow(@AuthenticationPrincipal User principal, @PathVariable String handle) {
+    @DeleteMapping("/me/follow-requests/{followerId}/reject")
+    public ResponseEntity<Void> rejectFollowRequest(
+            @AuthenticationPrincipal User principal,
+            @PathVariable Long followerId
+    ) {
         Long myUserId = Long.parseLong(principal.getUsername());
-        followService.unfollow(myUserId, handle);
+        followService.rejectFollowRequest(myUserId, followerId);
         return ResponseEntity.ok().build();
     }
 
@@ -48,7 +95,7 @@ public class FollowController {
     }
 
     /**
-     * 내 팔로워 목록 조회
+     * 내 팔로워 목록 조회 (수락 완료된 팔로워만)
      */
     @GetMapping("/me/followers")
     public ResponseEntity<List<FollowDto.UserSummary>> getMyFollowers(@AuthenticationPrincipal User principal) {
@@ -58,7 +105,7 @@ public class FollowController {
     }
 
     /**
-     * 내가 팔로우하는 목록 조회
+     * 내가 팔로우하는 목록 조회 (수락 완료된 팔로잉만)
      */
     @GetMapping("/me/followings")
     public ResponseEntity<List<FollowDto.UserSummary>> getMyFollowings(@AuthenticationPrincipal User principal) {

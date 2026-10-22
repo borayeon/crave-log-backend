@@ -1,6 +1,7 @@
 package com.cravelog.domain.user.dto;
 
 import com.cravelog.domain.user.User;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -357,6 +358,7 @@ public class ProfileDto {
     @Getter @Setter
     @Builder
     public static class SearchResponse {
+        private Long id;
         private String name;
         private String handle;
         private String profileImageUrl;
@@ -368,15 +370,46 @@ public class ProfileDto {
         private List<String> tags;
         private Long totalVisits;
         private Long followerCount;
+
+        @JsonProperty("isFollowing")
         private boolean isFollowing;
+
+        @JsonProperty("isPending")
+        private boolean isPending;
+
         private List<String> matchedFields;
 
+        @JsonProperty("isFollowing")
+        public boolean isFollowing() {
+            return isFollowing;
+        }
+
+        @JsonProperty("following")
+        public boolean getFollowing() {
+            return isFollowing;
+        }
+
+        @JsonProperty("isPending")
+        public boolean isPending() {
+            return isPending;
+        }
+
+        @JsonProperty("pending")
+        public boolean getPending() {
+            return isPending;
+        }
+
         public static SearchResponse from(User user, long followerCount, boolean isFollowing, List<String> matchedFields) {
+            return from(user, followerCount, isFollowing, false, matchedFields);
+        }
+
+        public static SearchResponse from(User user, long followerCount, boolean isFollowing, boolean isPending, List<String> matchedFields) {
             boolean allowRole = user.isFieldSearchable("role");
             boolean allowBio = user.isFieldSearchable("bio");
             boolean allowTags = user.isFieldSearchable("tags");
 
             return SearchResponse.builder()
+                    .id(user.getId())
                     .name(user.getName())
                     .handle(user.getHandle())
                     .profileImageUrl(user.getProfileImageUrl())
@@ -389,6 +422,7 @@ public class ProfileDto {
                     .totalVisits(user.getTotalVisits())
                     .followerCount(followerCount)
                     .isFollowing(isFollowing)
+                    .isPending(isPending)
                     .matchedFields(matchedFields != null ? matchedFields : List.of())
                     .build();
         }

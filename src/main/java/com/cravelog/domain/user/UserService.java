@@ -26,6 +26,7 @@ public class UserService {
     private final VisitService visitService;
     private final FollowRepository followRepository;
     private final DailyVisitRepository dailyVisitRepository;
+    private final com.cravelog.domain.notification.NotificationRepository notificationRepository;
 
     private static final java.util.regex.Pattern HANDLE_PATTERN = java.util.regex.Pattern.compile("^[a-z0-9._-]{2,30}$");
     private static final java.util.regex.Pattern PASSWORD_PATTERN = java.util.regex.Pattern.compile("^(?=.*[A-Za-z])(?=.*\\d)(?=.*[^A-Za-z0-9]).{8,64}$");
@@ -56,7 +57,7 @@ public class UserService {
 
         boolean isOwner = authenticatedUserId != null && authenticatedUserId.equals(user.getId());
         boolean isFollower = isOwner || (authenticatedUserId != null
-                && followRepository.existsByFollowerIdAndFollowingId(authenticatedUserId, user.getId()));
+                && followRepository.existsByFollowerIdAndFollowingIdAndStatus(authenticatedUserId, user.getId(), FollowStatus.ACCEPTED));
 
         // 알아서 필터링된 안전한 Response가 만들어집니다.
         return ProfileDto.Response.from(user, isOwner, personaId, todayVisits, isFollower, java.util.Set.of());
@@ -146,7 +147,7 @@ public class UserService {
         Long todayVisits = visitService.getTodayVisits(user.getId());
         boolean isOwner = authenticatedUserId != null && authenticatedUserId.equals(user.getId());
         boolean isFollower = isOwner || (authenticatedUserId != null
-                && followRepository.existsByFollowerIdAndFollowingId(authenticatedUserId, user.getId()));
+                && followRepository.existsByFollowerIdAndFollowingIdAndStatus(authenticatedUserId, user.getId(), FollowStatus.ACCEPTED));
 
         return ProfileDto.Response.from(user, isOwner, request.getPersonaId(), todayVisits, isFollower, validUnlocked);
     }
@@ -225,6 +226,9 @@ public class UserService {
         java.util.Set<Long> followingIds = (currentUserId != null)
                 ? followRepository.findFollowingIdsByFollowerId(currentUserId)
                 : java.util.Set.of();
+        java.util.Set<Long> pendingFollowingIds = (currentUserId != null)
+                ? followRepository.findPendingFollowingIdsByFollowerId(currentUserId)
+                : java.util.Set.of();
 
         String rawKeyword = (keyword == null) ? "" : keyword.trim();
         // @핸들 또는 #태그 형태로 검색했을 때 기호 제거 지원
@@ -240,6 +244,7 @@ public class UserService {
                             user,
                             followerCountMap.getOrDefault(user.getId(), 0L),
                             followingIds.contains(user.getId()),
+                            pendingFollowingIds.contains(user.getId()),
                             List.of()
                     ))
                     .collect(Collectors.toList());
@@ -308,6 +313,7 @@ public class UserService {
                         mu.user(),
                         followerCountMap.getOrDefault(mu.user().getId(), 0L),
                         followingIds.contains(mu.user().getId()),
+                        pendingFollowingIds.contains(mu.user().getId()),
                         mu.matchedFields()
                 ))
                 .collect(Collectors.toList());
@@ -374,6 +380,9 @@ public class UserService {
 
         // 1. 유저의 모든 팔로우 관계 삭제 (팔로워 및 팔로잉 외래키 무결성 보장)
         followRepository.deleteAllByUserId(userId);
+
+        // 1-1. 유저의 모든 알림 기록 삭제 (수신/발신)
+        notificationRepository.deleteAllByUserId(userId);
 
         // 2. 유저의 일별 방문자 통계 기록 삭제
         dailyVisitRepository.deleteAllByUserId(userId);
