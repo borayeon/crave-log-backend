@@ -1,9 +1,12 @@
 package com.cravelog.domain.user.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
 
 public class FollowDto {
 
@@ -17,7 +20,15 @@ public class FollowDto {
         private String name;
         private String profileImageUrl;
         private String statusMessage;
+
+        @JsonProperty("isFollowing")
         private boolean isFollowing;
+
+        @JsonProperty("isPending")
+        private boolean isPending;
+
+        private Long followId;
+        private LocalDateTime requestedAt;
     }
 
     @Getter
@@ -25,7 +36,12 @@ public class FollowDto {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class FollowStatusResponse {
+        @JsonProperty("isFollowing")
         private boolean isFollowing;
+
+        @JsonProperty("isPending")
+        private boolean isPending;
+
         private long followerCount;
         private long followingCount;
     }
